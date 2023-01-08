@@ -1,0 +1,48 @@
+[package]
+name = "onlivfe"
+version = "0.0.0-alpha.0"
+edition = "2021"
+authors = ["ljoonal"]
+license = "AGPL-3.0-or-later"
+description = "The core powering listing social (VR) platforms' peeps"
+repository = "https://github.com/onlivfe/core"
+categories = ["games"]
+publish = false
+rust-version = "1.57"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+# Data mangling
+serde = { version = "1.0.152", features = ["derive"] }
+serde_with = { version = "2.1.0", features = ["time_0_3", "json"] }
+uuid = { version = "1.2.2", features = ["serde"] }
+time = { version = "0.3.13", features = ["serde-well-known", "macros"] }
+strum = { version = "0.24.1", features = ["derive"] }
+
+# Logging
+log = "0.4.17"
+tracing = "0.1.37"
+tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
+
+# Functionality
+dotenvy = "0.15"
+num_cpus = "1.15"
+reqwest = { version = "0.11", features = ["json"] }
+
+# Platform specifics
+neos = { version = "0.4.0-alpha.0", features = [] }
+chilloutvr = { version = "0.0.0-alpha.1", features = [] }
+vrchatapi = "1.9.0"
+
+[dependencies.sqlx]
+version = "0.6.2"
+no-default-features = true
+features = [
+	"runtime-tokio-rustls",
+	"sqlite",
+	"json",
+	"uuid",
+	"time",
+	"offline"
+]
