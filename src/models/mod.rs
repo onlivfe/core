@@ -19,8 +19,8 @@ pub enum PlatformAccountId {
 }
 
 pub enum PlatformAccount {
-	VRChat(vrchatapi::models::User),
-	ChilloutVR(chilloutvr::UserDetails),
+	VRChat(()),
+	ChilloutVR(chilloutvr::model::UserDetails),
 	NeosVR(neos::User),
 }
 
