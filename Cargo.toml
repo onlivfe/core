@@ -7,10 +7,16 @@ license = "AGPL-3.0-or-later"
 description = "The core powering listing social (VR) platforms' peeps"
 repository = "https://github.com/onlivfe/core"
 categories = ["games"]
-publish = false
 rust-version = "1.57"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+include = ["src", "migrations", "Cargo.toml", "build.rs", "LICENSE", "README.md"]
+
+[badges]
+maintenance = { status = "experimental" }
+
+[lib]
+name = "onlivfe"
+path = "src/lib.rs"
 
 [dependencies]
 # Data mangling
@@ -31,9 +37,9 @@ num_cpus = "1.15"
 reqwest = { version = "0.11", features = ["json"] }
 
 # Platform specifics
-neos = { version = "0.4.0-alpha.0", features = [] }
-chilloutvr = { version = "0.0.0-alpha.1", features = [] }
-vrchatapi = "1.9.0"
+neos = { version = "0.4.0", features = [] }
+chilloutvr = { version = "0.0.0-alpha.3", features = [] }
+vrc = "0.0.0-alpha.0"
 
 [dependencies.sqlx]
 version = "0.6.2"

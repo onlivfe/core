@@ -1,4 +1,6 @@
-//! The core that powers onlivfe.
+//! The core that powers [onlivfe](https://onlivfe.com).
+//!
+//! Very WIP.
 
 mod apis;
 pub mod models;
@@ -41,4 +43,3 @@ impl Onlivfe {
 		Ok(Onlivfe { db })
 	}
 }
-
