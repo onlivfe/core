@@ -6,8 +6,11 @@ authors = ["ljoonal"]
 license = "AGPL-3.0-or-later"
 description = "The core powering listing social (VR) platforms' peeps"
 repository = "https://github.com/onlivfe/core"
+documentation = "https://docs.rs/onlivfe"
+homepage = "https://onlivfe.com"
 categories = ["games"]
-rust-version = "1.57"
+keywords = ["vrc", "vrchat", "api", "rest"]
+rust-version = "1.67"
 
 include = ["src", "migrations", "Cargo.toml", "build.rs", "LICENSE", "README.md"]
 
@@ -37,12 +40,12 @@ num_cpus = "1.15"
 reqwest = { version = "0.11", features = ["json"] }
 
 # Platform specifics
-neos = { version = "0.4.0", features = [] }
-chilloutvr = { version = "0.0.0-alpha.3", features = [] }
-vrc = "0.0.0-alpha.0"
+neos = { version = "0.5.0", features = [] }
+chilloutvr = { version = "0.1.2", features = [] }
+vrc = "0.0.0-alpha.1"
 
 [dependencies.sqlx]
-version = "0.6.2"
+version = "0.7.0-alpha.1"
 no-default-features = true
 features = [
 	"runtime-tokio-rustls",
@@ -50,5 +53,5 @@ features = [
 	"json",
 	"uuid",
 	"time",
-	"offline"
+	"migrate"
 ]

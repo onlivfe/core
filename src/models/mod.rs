@@ -3,7 +3,6 @@
 use serde::{Deserialize, Serialize};
 use strum::EnumDiscriminants;
 
-
 pub mod cvr;
 pub mod neosvr;
 pub mod vrchat;
@@ -13,15 +12,15 @@ pub mod vrchat;
 #[strum_discriminants(derive(Serialize, Deserialize))]
 #[serde(tag = "platform", content = "id")]
 pub enum PlatformAccountId {
-	VRChat(String),
-	ChilloutVR(String),
+	VRChat(vrc::id::User),
+	ChilloutVR(chilloutvr::id::User),
 	NeosVR(neos::id::User),
 }
 
 pub enum PlatformAccount {
-	VRChat(()),
-	ChilloutVR(chilloutvr::model::UserDetails),
-	NeosVR(neos::User),
+	VRChat(Box<vrc::model::User>),
+	ChilloutVR(Box<chilloutvr::model::UserDetails>),
+	NeosVR(Box<neos::model::User>),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
