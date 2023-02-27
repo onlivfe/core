@@ -1,0 +1,44 @@
+[package]
+name = "onlivfe_db_store"
+description = "A database storage backed for onlivfe"
+documentation = "https://docs.rs/onlivfe_db_store"
+
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+categories.workspace = true
+keywords.workspace = true
+
+include = ["src", "Cargo.toml", "build.rs", "entities", "LICENSE", "README.md"]
+build = "build.rs"
+
+[badges]
+maintenance = { status = "experimental" }
+
+[lib]
+name = "onlivfe_db_store"
+path = "src/lib.rs"
+
+[dependencies]
+num_cpus = "1.15.0"
+
+# Platform specifics
+vrc = { workspace = true, features = [] }
+neos = { workspace = true, features = [] }
+chilloutvr = { workspace = true, features = [] }
+
+[dependencies.sqlx]
+version = "0.7.0-alpha.1"
+default-features = false
+features = [
+	"runtime-tokio-rustls",
+	"sqlite",
+	"json",
+	"uuid",
+	"time",
+	"migrate",
+	"macros",
+]

@@ -1,0 +1,28 @@
+[package]
+name = "onlivfe_cache_store"
+description = "A database storage backed for onlivfe"
+documentation = "https://docs.rs/onlivfe_cache_store"
+
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+categories.workspace = true
+keywords.workspace = true
+
+include = ["src", "Cargo.toml", "LICENSE", "README.md"]
+
+[badges]
+maintenance = { status = "experimental" }
+
+[lib]
+name = "onlivfe_cache_store"
+path = "src/lib.rs"
+
+[dependencies]
+# Platform specifics
+vrc = { workspace = true, features = [] }
+neos = { workspace = true, features = [] }
+chilloutvr = { workspace = true, features = [] }

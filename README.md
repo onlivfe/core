@@ -10,7 +10,6 @@ Basic requirements:
 
 - [Git](https://git-scm.com)
 - [Rust](https://www.rust-lang.org/)
-- [SQLx CLI](https://github.com/launchbadge/sqlx/blob/main/sqlx-cli/README.md) - (`cargo install sqlx-cli --no-default-features --features sqlite`)
 
 ### Building
 
@@ -23,22 +22,14 @@ git clone https://github.com/onlivfe/core
 Then open the project folder in your terminal, & run `cargo build`.
 Then get to hacking, & optionally replace the dependency in other projects by [overriding dependencies](https://doc.rust-lang.org/cargo/reference/overriding-dependencies.html).
 
-### Database changes
+### Storage
 
-Generally speaking, you first generate a new migration:
+The `core` abstracts away storage backends, so that consumers can optionally provide their own.
+This is done so that for example in the future `core` could easily be used via WebAssembly,
+as long as there is a compatible storage backend.
 
-```sh
-sqlx migrate add NAME_OF_MIGRATION
-```
-
-Then write the SQL changes, and then re-generate the schema by running the migrations:
-
-```sh
-# Drop DB, recreate it and run all migrations
-sqlx database drop && sqlx database create && sqlx migrate run
-# Save metadata
-cargo sqlx prepare
-```
+In the short term, there's plans for a in-memory caching backend, which should be enough to start developing other parts of the system.
+In the long term, a standard database backend is being developed, with proper support for historical data.
 
 ### API considerations
 

@@ -1,0 +1,41 @@
+[package]
+name = "onlivfe"
+description = "The core powering listing social (VR) platforms' peeps"
+documentation = "https://docs.rs/onlivfe"
+
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+categories.workspace = true
+keywords.workspace = true
+
+include = ["src", "Cargo.toml", "LICENSE", "README.md"]
+
+[badges]
+maintenance = { status = "experimental" }
+
+[lib]
+name = "onlivfe"
+path = "src/lib.rs"
+
+[dependencies]
+async-trait = "0.1.64"
+tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
+dotenvy = "0.15.6"
+
+serde = { workspace = true, features = ["derive"]  }
+serde_with = { workspace = true }
+uuid = { workspace = true }
+time = { workspace = true, features = ["macros"]  }
+strum = { workspace = true, features = ["derive"]  }
+
+log = { workspace = true }
+tracing = { workspace = true }
+
+# Platform specifics
+vrc = { workspace = true, features = ["api_client"] }
+neos = { workspace = true, features = ["http_client"] }
+chilloutvr = { workspace = true, features = ["http_client", "ws_client"] }
