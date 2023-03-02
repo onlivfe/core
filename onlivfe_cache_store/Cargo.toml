@@ -22,7 +22,15 @@ name = "onlivfe_cache_store"
 path = "src/lib.rs"
 
 [dependencies]
+onlivfe = { workspace = true }
+async-trait = { workspace = true }
+tokio = { workspace = true }
+
 # Platform specifics
 vrc = { workspace = true, features = [] }
 neos = { workspace = true, features = [] }
 chilloutvr = { workspace = true, features = [] }
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "nightly"]

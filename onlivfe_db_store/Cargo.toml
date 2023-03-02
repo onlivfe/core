@@ -25,6 +25,9 @@ path = "src/lib.rs"
 [dependencies]
 num_cpus = "1.15.0"
 
+onlivfe = { workspace = true }
+async-trait = { workspace = true }
+
 # Platform specifics
 vrc = { workspace = true, features = [] }
 neos = { workspace = true, features = [] }
@@ -34,7 +37,7 @@ chilloutvr = { workspace = true, features = [] }
 version = "0.7.0-alpha.1"
 default-features = false
 features = [
-	"runtime-tokio-rustls",
+	"runtime-tokio",
 	"sqlite",
 	"json",
 	"uuid",
@@ -42,3 +45,7 @@ features = [
 	"migrate",
 	"macros",
 ]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "nightly"]

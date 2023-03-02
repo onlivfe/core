@@ -2,7 +2,7 @@
 //!
 //! Very WIP.
 
-#![cfg_attr(nightly, feature(doc_cfg))]
+#![cfg_attr(nightly, feature(doc_auto_cfg))]
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 #![deny(clippy::cargo)]
@@ -15,6 +15,12 @@
 // Not much can be done about it :/
 #![allow(clippy::multiple_crate_versions)]
 
+use onlivfe::{
+	model::{PlatformAccount, PlatformAccountId, Profile, ProfileId},
+	storage::OnlivfeStore,
+};
+
+#[derive(Debug)]
 /// A database backend storage for onlivfe
 pub struct OnlivfeDatabaseStorageBackend {
 	/// The main database connection pool
@@ -59,5 +65,48 @@ impl OnlivfeDatabaseStorageBackend {
 			.map_err(|e| "Failed to migrate DB: ".to_string() + &e.to_string())?;
 
 		Ok(Self { db })
+	}
+}
+
+#[async_trait::async_trait]
+impl OnlivfeStore for OnlivfeDatabaseStorageBackend {
+	type Err = sqlx::Error;
+
+	async fn account_ids(
+		&self, max: usize,
+	) -> Result<Vec<PlatformAccountId>, Self::Err> {
+		todo!();
+	}
+
+	async fn account(
+		&self, account_id: PlatformAccountId,
+	) -> Result<PlatformAccount, Self::Err> {
+		todo!();
+	}
+
+	async fn account_profile_ids(
+		&self, account_id: PlatformAccountId,
+	) -> Result<Vec<ProfileId>, Self::Err> {
+		todo!();
+	}
+
+	async fn update_account(
+		&self, account: PlatformAccount,
+	) -> Result<bool, Self::Err> {
+		todo!();
+	}
+
+	async fn profile(&self, profile_id: ProfileId) -> Result<Profile, Self::Err> {
+		todo!();
+	}
+
+	async fn profile_account_ids(
+		&self, profile_id: ProfileId,
+	) -> Result<Vec<PlatformAccountId>, Self::Err> {
+		todo!();
+	}
+
+	async fn update_profile(&self, profile: Profile) -> Result<bool, Self::Err> {
+		todo!();
 	}
 }

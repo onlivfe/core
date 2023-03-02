@@ -22,7 +22,6 @@ name = "onlivfe"
 path = "src/lib.rs"
 
 [dependencies]
-async-trait = "0.1.64"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 dotenvy = "0.15.6"
 
@@ -32,10 +31,17 @@ uuid = { workspace = true }
 time = { workspace = true, features = ["macros"]  }
 strum = { workspace = true, features = ["derive"]  }
 
+async-trait = { workspace = true }
 log = { workspace = true }
 tracing = { workspace = true }
+futures = { workspace = true }
+tokio = { workspace = true }
 
 # Platform specifics
 vrc = { workspace = true, features = ["api_client"] }
 neos = { workspace = true, features = ["http_client"] }
 chilloutvr = { workspace = true, features = ["http_client", "ws_client"] }
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "nightly"]

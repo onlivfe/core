@@ -2,7 +2,7 @@
 //!
 //! Very WIP.
 
-#![cfg_attr(nightly, feature(doc_cfg))]
+#![cfg_attr(nightly, feature(doc_auto_cfg))]
 #![deny(clippy::all)]
 #![forbid(unsafe_code)]
 #![deny(clippy::cargo)]
@@ -15,7 +15,7 @@
 // Not much can be done about it :/
 #![allow(clippy::multiple_crate_versions)]
 
-mod apis;
+mod api;
 pub mod model;
 pub mod storage;
 
@@ -41,15 +41,33 @@ pub fn init() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>>
 /// trough the API it provides. Other than the fact that all data might be
 /// cached, so requesting fresh data should still be done.
 pub struct Onlivfe<StorageBackend: storage::OnlivfeStore> {
-	store: StorageBackend,
+	/// The local cache storage of data that is used before network requests
+	pub store: StorageBackend,
+	api: api::OnlivfeApiClient,
 }
 
 impl<StorageBackend: storage::OnlivfeStore> Onlivfe<StorageBackend> {
-	/** Checks or extends authentication, adding it into use, returning an
-	 * error if it's invalid. */
-	async fn check_auth(
-		auth: model::PlatformAuthentication,
+	/// Creates a new onlivfe client
+	/// 
+	/// # Errors
+	/// 
+	/// If there were issues initializing API clients due to an invalid user agent
+	pub fn new(user_agent: String, store: StorageBackend) -> Result<Self, String> {
+		Ok(Self {
+			store,
+			api: api::OnlivfeApiClient::new(user_agent)?
+		})
+	}
+
+	/// Checks or extends authentication, adding it into use,
+	/// returning an error if it's invalid.
+	/// 
+	/// # Errors
+	/// 
+	/// If the request failed or there's no valid auth
+	pub async fn check_auth(
+		&self, auth: model::PlatformAuthentication,
 	) -> Result<(), String> {
-		todo!();
+		self.api.reauthenticate(auth).await
 	}
 }
