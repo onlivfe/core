@@ -61,14 +61,28 @@ impl PlatformAccount {
 }
 
 /// Credentials for a platform
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum PlatformAuthentication {
 	/// Authentication for a VRChat account
-	VRChat(Box<String>),
+	VRChat(Box<(vrc::id::User, vrc::query::Authentication)>),
 	/// Authentication for a ChilloutVR account
-	ChilloutVR(Box<chilloutvr::query::SavedLoginCredentials>),
+	ChilloutVR(
+		Box<(chilloutvr::id::User, chilloutvr::query::SavedLoginCredentials)>,
+	),
 	/// Authentication for a NeosVR account
 	NeosVR(Box<neos::query::Authentication>),
+}
+
+impl PlatformAuthentication {
+	/// Get the ID of the platform account
+	#[must_use]
+	pub fn id(&self) -> PlatformAccountId {
+		match self {
+			Self::VRChat(t) => PlatformAccountId::from(t.0.clone()),
+			Self::ChilloutVR(t) => PlatformAccountId::from(t.0.clone()),
+			Self::NeosVR(v) => PlatformAccountId::from(v.user_id.clone()),
+		}
+	}
 }
 
 /// Struct required for trying to create a platform authentication
@@ -123,7 +137,7 @@ pub struct PlatformDataMetadata {
 	/// When the data was fetched
 	pub updated_at: OffsetDateTime,
 	/// Which account was used to fetch the data
-	pub updated_by: PlatformAccountId
+	pub updated_by: PlatformAccountId,
 }
 
 /// Metadata about the data from a platform with the data
@@ -132,5 +146,5 @@ pub struct PlatformDataAndMetadata<T> {
 	/// The actual data itself
 	pub data: T,
 	/// The metadata about the data
-	pub metadata: PlatformDataMetadata
+	pub metadata: PlatformDataMetadata,
 }

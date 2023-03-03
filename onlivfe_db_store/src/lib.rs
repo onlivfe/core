@@ -16,7 +16,13 @@
 #![allow(clippy::multiple_crate_versions)]
 
 use onlivfe::{
-	model::{PlatformAccount, PlatformAccountId, Profile, ProfileId},
+	model::{
+		PlatformAccount,
+		PlatformAccountId,
+		PlatformAuthentication,
+		Profile,
+		ProfileId,
+	},
 	storage::OnlivfeStore,
 };
 
@@ -107,6 +113,18 @@ impl OnlivfeStore for OnlivfeDatabaseStorageBackend {
 	}
 
 	async fn update_profile(&self, profile: Profile) -> Result<bool, Self::Err> {
+		todo!();
+	}
+
+	async fn authentications(
+		&self,
+	) -> Result<Vec<PlatformAuthentication>, Self::Err> {
+		todo!();
+	}
+
+	async fn update_authentication(
+		&self, authentication: PlatformAuthentication,
+	) -> Result<bool, Self::Err> {
 		todo!();
 	}
 }

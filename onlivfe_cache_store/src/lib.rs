@@ -15,8 +15,15 @@
 // Not much can be done about it :/
 #![allow(clippy::multiple_crate_versions)]
 
+use directories::ProjectDirs;
 use onlivfe::{
-	model::{PlatformAccount, PlatformAccountId, Profile, ProfileId},
+	model::{
+		PlatformAccount,
+		PlatformAccountId,
+		PlatformAuthentication,
+		Profile,
+		ProfileId,
+	},
 	storage::OnlivfeStore,
 };
 use tokio::sync::RwLock;
@@ -24,17 +31,47 @@ use tokio::sync::RwLock;
 /// An in-memory only cache storage backend for onlivfe
 ///
 /// Built for simplicity & quick iterating, not for efficiency.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct OnlivfeCacheStorageBackend {
+	dirs: ProjectDirs,
 	profiles: RwLock<Vec<Profile>>,
 	accounts: RwLock<Vec<PlatformAccount>>,
 	profiles_to_accounts: RwLock<Vec<(PlatformAccountId, ProfileId)>>,
+	authentications: RwLock<Vec<PlatformAuthentication>>,
 }
 
 impl OnlivfeCacheStorageBackend {
-	#[must_use]
 	/// Creates a new onlivfe cache storage backend
-	pub fn new() -> Self { Self::default() }
+	///
+	/// # Errors
+	///
+	/// If reading previous data from disk fails
+	pub fn new(app_name: &str) -> Result<Self, String> {
+		let dirs =
+			ProjectDirs::from("com", "Onlivfe", app_name).ok_or_else(|| {
+				"Failed to get system directory paths for storage".to_owned()
+			})?;
+
+		let authentications = dirs.config_dir().join("auth.bson");
+		let authentications: Vec<PlatformAuthentication> =
+			if authentications.exists() {
+				let authentications =
+					std::fs::File::open(authentications).map_err(|e| e.to_string())?;
+				bson::from_reader(authentications).map_err(|e| e.to_string())?
+			} else {
+				vec![]
+			};
+
+		let store = Self {
+			dirs,
+			accounts: RwLock::default(),
+			authentications: RwLock::new(authentications),
+			profiles: RwLock::default(),
+			profiles_to_accounts: RwLock::default(),
+		};
+
+		Ok(store)
+	}
 }
 
 #[async_trait::async_trait]
@@ -45,9 +82,14 @@ impl OnlivfeStore for OnlivfeCacheStorageBackend {
 		&self, max: usize,
 	) -> Result<Vec<PlatformAccountId>, Self::Err> {
 		let accounts = self.accounts.read().await;
-		let accounts: Vec<PlatformAccountId> = accounts.iter().take(max).map(onlivfe::model::PlatformAccount::id).collect();
+		let accounts: Vec<PlatformAccountId> = accounts
+			.iter()
+			.take(max)
+			.map(onlivfe::model::PlatformAccount::id)
+			.collect();
 		Ok(accounts)
 	}
+
 	async fn account(
 		&self, account_id: PlatformAccountId,
 	) -> Result<PlatformAccount, Self::Err> {
@@ -117,5 +159,61 @@ impl OnlivfeStore for OnlivfeCacheStorageBackend {
 
 		profiles.push(profile);
 		Ok(false)
+	}
+
+	async fn authentications(
+		&self,
+	) -> Result<Vec<PlatformAuthentication>, Self::Err> {
+		Ok(self.authentications.read().await.clone())
+	}
+
+	async fn update_authentication(
+		&self, mut authentication: PlatformAuthentication,
+	) -> Result<bool, Self::Err> {
+		let auth_id = authentication.id();
+		let mut authentications = self.authentications.write().await;
+
+		let mut swapped = false;
+
+		if let Some(auth) =
+			authentications.iter_mut().find(|auth| auth.id() == auth_id)
+		{
+			std::mem::swap(&mut *auth, &mut authentication);
+			swapped = true;
+		}
+
+		let write_result = bson::to_vec(&*authentications).map(|bytes| {
+			std::fs::write(self.dirs.config_dir().join("auth.bson"), bytes)
+		});
+
+		// Undo the operation before returning, as we want same state on disk and in
+		// cache always
+		let mut before_exit = || {
+			if swapped {
+				if let Some(auth) =
+					authentications.iter_mut().find(|auth| auth.id() == auth_id)
+				{
+					std::mem::swap(&mut *auth, &mut authentication);
+				}
+			}
+		};
+
+		match write_result {
+			Ok(Ok(_)) => {}
+			Ok(Err(e)) => {
+				before_exit();
+				return Err(e);
+			}
+			Err(e) => {
+				before_exit();
+				return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, e));
+			}
+		};
+
+		if !swapped {
+			authentications.push(authentication);
+		}
+
+		Ok(swapped)
 	}
 }

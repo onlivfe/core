@@ -1,14 +1,15 @@
 //! Core's API connection handling
 
 use chilloutvr::api_client::{AuthenticatedCVR, UnauthenticatedCVR};
-use neos::api_client::{UnauthenticatedNeos, AuthenticatedNeos};
+use neos::api_client::{AuthenticatedNeos, UnauthenticatedNeos};
 use tokio::sync::RwLock;
-use vrc::api_client::{UnauthenticatedVRC, AuthenticatedVRC};
+use vrc::api_client::{AuthenticatedVRC, UnauthenticatedVRC};
+
 use crate::model::PlatformType;
 
 enum PossiblyAuthenticated<Auth, NoAuth> {
 	Authenticated(Auth),
-	Unauthenticated(NoAuth)
+	Unauthenticated(NoAuth),
 }
 
 impl<A, N> PossiblyAuthenticated<A, N> {
@@ -23,7 +24,8 @@ impl<A, N> PossiblyAuthenticated<A, N> {
 /// An unified API client interface for the different platforms
 pub struct OnlivfeApiClient {
 	/// The VRChat API client
-	vrc: RwLock<Option<PossiblyAuthenticated<AuthenticatedVRC, UnauthenticatedVRC>>>,
+	vrc:
+		RwLock<Option<PossiblyAuthenticated<AuthenticatedVRC, UnauthenticatedVRC>>>,
 	/// The ChilloutVR API client
 	cvr: RwLock<PossiblyAuthenticated<AuthenticatedCVR, UnauthenticatedCVR>>,
 	/// The NeosVR API client
@@ -31,12 +33,17 @@ pub struct OnlivfeApiClient {
 }
 
 impl OnlivfeApiClient {
-	
 	pub fn new(user_agent: String) -> Result<Self, String> {
 		Ok(Self {
 			vrc: RwLock::new(None),
-			cvr: RwLock::new(PossiblyAuthenticated::Unauthenticated(UnauthenticatedCVR::new(user_agent.clone()).map_err(|_| "Failed to create Neos API client")?)),
-			neos: RwLock::new(PossiblyAuthenticated::Unauthenticated(UnauthenticatedNeos::new(user_agent).map_err(|_| "Failed to create Neos API client")?)),
+			cvr: RwLock::new(PossiblyAuthenticated::Unauthenticated(
+				UnauthenticatedCVR::new(user_agent.clone())
+					.map_err(|_| "Failed to create Neos API client")?,
+			)),
+			neos: RwLock::new(PossiblyAuthenticated::Unauthenticated(
+				UnauthenticatedNeos::new(user_agent)
+					.map_err(|_| "Failed to create Neos API client")?,
+			)),
 		})
 	}
 
@@ -44,12 +51,14 @@ impl OnlivfeApiClient {
 		match platform {
 			PlatformType::VRChat => {
 				let api = self.vrc.read().await;
-				api.as_ref().map_or_else(|| false, PossiblyAuthenticated::is_authenticated)
-			},
+				api
+					.as_ref()
+					.map_or_else(|| false, PossiblyAuthenticated::is_authenticated)
+			}
 			PlatformType::ChilloutVR => {
 				let api = self.cvr.read().await;
 				api.is_authenticated()
-			},
+			}
 			PlatformType::NeosVR => {
 				let api = self.neos.read().await;
 				api.is_authenticated()

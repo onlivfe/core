@@ -1,6 +1,12 @@
 //! The storage interface that core will use
 
-use crate::model::{PlatformAccount, PlatformAccountId, Profile, ProfileId};
+use crate::model::{
+	PlatformAccount,
+	PlatformAccountId,
+	PlatformAuthentication,
+	Profile,
+	ProfileId,
+};
 
 #[async_trait::async_trait]
 /// Storage backend for onlivfe
@@ -79,4 +85,14 @@ pub trait OnlivfeStore: Send + Sync + std::fmt::Debug {
 
 		Ok(accounts)
 	}
+
+	/// Retrieves platform authentications
+	async fn authentications(
+		&self,
+	) -> Result<Vec<PlatformAuthentication>, Self::Err>;
+	/// Update or store a platform's authentication, returning if an existing one
+	/// was updated
+	async fn update_authentication(
+		&self, auth: PlatformAuthentication,
+	) -> Result<bool, Self::Err>;
 }

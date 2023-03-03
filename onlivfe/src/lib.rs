@@ -48,22 +48,21 @@ pub struct Onlivfe<StorageBackend: storage::OnlivfeStore> {
 
 impl<StorageBackend: storage::OnlivfeStore> Onlivfe<StorageBackend> {
 	/// Creates a new onlivfe client
-	/// 
+	///
 	/// # Errors
-	/// 
+	///
 	/// If there were issues initializing API clients due to an invalid user agent
-	pub fn new(user_agent: String, store: StorageBackend) -> Result<Self, String> {
-		Ok(Self {
-			store,
-			api: api::OnlivfeApiClient::new(user_agent)?
-		})
+	pub fn new(
+		user_agent: String, store: StorageBackend,
+	) -> Result<Self, String> {
+		Ok(Self { store, api: api::OnlivfeApiClient::new(user_agent)? })
 	}
 
 	/// Checks or extends authentication, adding it into use,
 	/// returning an error if it's invalid.
-	/// 
+	///
 	/// # Errors
-	/// 
+	///
 	/// If the request failed or there's no valid auth
 	pub async fn check_auth(
 		&self, auth: model::PlatformAuthentication,
