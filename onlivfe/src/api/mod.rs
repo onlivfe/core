@@ -1,80 +1,235 @@
 //! Core's API connection handling
 
-use chilloutvr::api_client::{AuthenticatedCVR, UnauthenticatedCVR};
-use neos::api_client::{AuthenticatedNeos, UnauthenticatedNeos};
+use chilloutvr::{
+	api_client::{ApiClient, AuthenticatedCVR},
+	query::SavedLoginCredentials,
+};
+use neos::api_client::AuthenticatedNeos;
 use tokio::sync::RwLock;
-use vrc::api_client::{AuthenticatedVRC, UnauthenticatedVRC};
+use vrc::api_client::AuthenticatedVRC;
 
-use crate::model::PlatformType;
+use crate::model::{PlatformAuthentication, PlatformLogin, PlatformType};
 
-enum PossiblyAuthenticated<Auth, NoAuth> {
-	Authenticated(Auth),
-	Unauthenticated(NoAuth),
+enum VRChatClientState {
+	None,
+	/// Has authentication cookie saved from login but no 2FA cookie
+	Authenticating((AuthenticatedVRC, vrc::query::Authentication)),
+	Authenticated(AuthenticatedVRC),
 }
 
-impl<A, N> PossiblyAuthenticated<A, N> {
-	pub fn is_authenticated(&self) -> bool {
-		match &self {
-			PossiblyAuthenticated::Authenticated(_) => true,
-			PossiblyAuthenticated::Unauthenticated(_) => false,
-		}
-	}
+impl VRChatClientState {
+	const fn is_some(&self) -> bool { matches!(self, Self::Authenticated(_)) }
 }
 
 /// An unified API client interface for the different platforms
 pub struct OnlivfeApiClient {
+	user_agent: String,
 	/// The VRChat API client
-	vrc:
-		RwLock<Option<PossiblyAuthenticated<AuthenticatedVRC, UnauthenticatedVRC>>>,
+	vrc: RwLock<VRChatClientState>,
 	/// The ChilloutVR API client
-	cvr: RwLock<PossiblyAuthenticated<AuthenticatedCVR, UnauthenticatedCVR>>,
+	cvr: RwLock<Option<AuthenticatedCVR>>,
 	/// The NeosVR API client
-	neos: RwLock<PossiblyAuthenticated<AuthenticatedNeos, UnauthenticatedNeos>>,
+	neos: RwLock<Option<AuthenticatedNeos>>,
 }
 
 impl OnlivfeApiClient {
-	pub fn new(user_agent: String) -> Result<Self, String> {
-		Ok(Self {
-			vrc: RwLock::new(None),
-			cvr: RwLock::new(PossiblyAuthenticated::Unauthenticated(
-				UnauthenticatedCVR::new(user_agent.clone())
-					.map_err(|_| "Failed to create Neos API client")?,
+	pub fn new(user_agent: String) -> Self {
+		Self {
+			vrc: RwLock::new(VRChatClientState::None),
+			cvr: RwLock::default(),
+			neos: RwLock::default(),
+			user_agent,
+		}
+	}
+
+	pub async fn has_authenticated_client(&self, platform: PlatformType) -> bool {
+		match platform {
+			PlatformType::VRChat => self.vrc.read().await.is_some(),
+			PlatformType::ChilloutVR => self.cvr.read().await.is_some(),
+			PlatformType::NeosVR => self.neos.read().await.is_some(),
+		}
+	}
+
+	pub async fn logout(&self, platform: PlatformType) -> Result<(), String> {
+		match platform {
+			// TODO: send logout message in background
+			PlatformType::VRChat => {
+				*(self.vrc.write().await) = VRChatClientState::None
+			}
+			PlatformType::ChilloutVR => *(self.cvr.write().await) = None,
+			PlatformType::NeosVR => *(self.neos.write().await) = None,
+		}
+
+		Ok(())
+	}
+
+	pub async fn login(
+		&self, auth: PlatformLogin,
+	) -> Result<PlatformAuthentication, String> {
+		Ok(match auth {
+			PlatformLogin::VRChat(auth) => PlatformAuthentication::VRChat(Box::new(
+				self.login_vrchat(*auth).await?,
 			)),
-			neos: RwLock::new(PossiblyAuthenticated::Unauthenticated(
-				UnauthenticatedNeos::new(user_agent)
-					.map_err(|_| "Failed to create Neos API client")?,
+			PlatformLogin::ChilloutVR(auth) => PlatformAuthentication::ChilloutVR(
+				Box::new(self.login_chilloutvr(*auth).await?),
+			),
+			PlatformLogin::NeosVR(auth) => PlatformAuthentication::NeosVR(Box::new(
+				self.login_neosvr(*auth).await?,
 			)),
 		})
 	}
 
-	pub async fn is_authenticated(&self, platform: PlatformType) -> bool {
-		match platform {
-			PlatformType::VRChat => {
-				let api = self.vrc.read().await;
-				api
-					.as_ref()
-					.map_or_else(|| false, PossiblyAuthenticated::is_authenticated)
+	async fn login_vrchat(
+		&self, auth: crate::model::vrchat::LoginRequestPart,
+	) -> Result<(vrc::id::User, vrc::query::Authentication), String> {
+		let mut lock = self.vrc.write().await;
+		let mut api = VRChatClientState::None;
+		std::mem::swap(&mut *lock, &mut api);
+		match auth {
+			crate::model::vrchat::LoginRequestPart::LoginRequest(auth) => {
+				let api = match api {
+					VRChatClientState::None => vrc::api_client::UnauthenticatedVRC::new(
+						self.user_agent.clone(),
+						auth,
+					),
+					VRChatClientState::Authenticating((api, _))
+					| VRChatClientState::Authenticated(api) => api.downgrade(auth),
+				}
+				.map_err(|_| {
+					"Internal error, API client creation failed".to_string()
+				})?;
+
+				let (login_resp, token) =
+					api.login().await.map_err(|_| "Authentication failed".to_owned())?;
+
+				let auth =
+					vrc::query::Authentication { second_factor_token: None, token };
+
+				let api = api.upgrade(auth.clone()).map_err(|_| {
+					"Internal error, authenticated API client's creation failed"
+						.to_owned()
+				})?;
+
+				if !login_resp.requires_additional_auth.is_empty() {
+					std::mem::swap(
+						&mut *lock,
+						&mut VRChatClientState::Authenticating((api, auth)),
+					);
+
+					return Err(
+						"2FA required : ".to_string()
+							+ &(login_resp
+								.requires_additional_auth
+								.iter()
+								.map(std::convert::AsRef::as_ref)
+								.collect::<Vec<&str>>()
+								.join(" ")),
+					);
+				}
+
+				let user: vrc::model::User =
+					api.query(vrc::query::GetCurrentUser).await.map_err(|_| {
+						"Couldn't get VRC user after authenticating".to_owned()
+					})?;
+
+				std::mem::swap(&mut *lock, &mut VRChatClientState::Authenticated(api));
+				Ok((user.id, auth))
 			}
-			PlatformType::ChilloutVR => {
-				let api = self.cvr.read().await;
-				api.is_authenticated()
-			}
-			PlatformType::NeosVR => {
-				let api = self.neos.read().await;
-				api.is_authenticated()
+			#[allow(clippy::manual_let_else)]
+			crate::model::vrchat::LoginRequestPart::SecondFactor(second_factor) => {
+				let (api, auth) = if let VRChatClientState::Authenticating(api) = api {
+					api
+				} else {
+					return Err("Internal error, API client creation failed".to_owned());
+				};
+
+				let (status, token) = api
+					.verify_second_factor(second_factor)
+					.await
+					.map_err(|_| "2FA verification failed".to_string())?;
+				if !status.verified {
+					return Err("2FA token is not valid".to_string());
+				}
+
+				let api = api.change_second_factor(token).map_err(|_| {
+					"Internal error, authenticated API client's creation failed"
+						.to_string()
+				})?;
+				let user: vrc::model::User =
+					api.query(vrc::query::GetCurrentUser).await.map_err(|_| {
+						"Couldn't get VRC user after authenticating".to_owned()
+					})?;
+
+				std::mem::swap(&mut *lock, &mut VRChatClientState::Authenticated(api));
+
+				Ok((user.id, auth))
 			}
 		}
 	}
 
-	pub async fn login(
-		&self, auth: crate::model::PlatformLogin,
-	) -> Result<(), String> {
-		todo!();
+	async fn login_chilloutvr(
+		&self, auth: chilloutvr::query::LoginCredentials,
+	) -> Result<
+		(chilloutvr::id::User, chilloutvr::query::SavedLoginCredentials),
+		String,
+	> {
+		let mut lock = self.cvr.write().await;
+		let mut api = None;
+		std::mem::swap(&mut *lock, &mut api);
+		let api = api
+			.map_or_else(
+				|| {
+					chilloutvr::api_client::UnauthenticatedCVR::new(
+						self.user_agent.clone(),
+					)
+				},
+				chilloutvr::api_client::AuthenticatedCVR::downgrade,
+			)
+			.map_err(|_| "Internal error, API client creation failed".to_string())?;
+
+		let user_auth = api
+			.query(auth)
+			.await
+			.map_err(|_| "Authentication failed".to_owned())?
+			.data;
+		let (id, creds) =
+			(user_auth.user_id.clone(), SavedLoginCredentials::from(user_auth));
+		let api = api.upgrade(creds.clone()).map_err(|_| {
+			"Internal error, authenticated API client's creation failed".to_owned()
+		})?;
+
+		std::mem::swap(&mut *lock, &mut Some(api));
+		Ok((id, creds))
 	}
 
+	async fn login_neosvr(
+		&self, auth: neos::query::LoginCredentials,
+	) -> Result<neos::query::Authentication, String> {
+		let mut lock = self.neos.write().await;
+		let mut api = None;
+		std::mem::swap(&mut *lock, &mut api);
+		let api = api
+			.map_or_else(
+				|| neos::api_client::UnauthenticatedNeos::new(self.user_agent.clone()),
+				neos::api_client::AuthenticatedNeos::downgrade,
+			)
+			.map_err(|_| "Internal error, API client creation failed".to_string())?;
+
+		let reply =
+			api.query(auth).await.map_err(|_| "Authentication failed".to_owned())?;
+		let auth = neos::query::Authentication::from(&reply);
+		let api = api.upgrade(auth.clone()).map_err(|_| {
+			"Internal error, authenticated API client's creation failed".to_owned()
+		})?;
+		std::mem::swap(&mut *lock, &mut Some(api));
+		Ok(auth)
+	}
+
+	/*
 	pub async fn reauthenticate(
 		&self, auth: crate::model::PlatformAuthentication,
 	) -> Result<(), String> {
 		todo!();
 	}
+	*/
 }

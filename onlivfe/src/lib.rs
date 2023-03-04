@@ -55,7 +55,7 @@ impl<StorageBackend: storage::OnlivfeStore> Onlivfe<StorageBackend> {
 	pub fn new(
 		user_agent: String, store: StorageBackend,
 	) -> Result<Self, String> {
-		Ok(Self { store, api: api::OnlivfeApiClient::new(user_agent)? })
+		Ok(Self { store, api: api::OnlivfeApiClient::new(user_agent) })
 	}
 
 	/// Checks or extends authentication, adding it into use,
@@ -63,10 +63,52 @@ impl<StorageBackend: storage::OnlivfeStore> Onlivfe<StorageBackend> {
 	///
 	/// # Errors
 	///
-	/// If the request failed or there's no valid auth
+	/// If the request failed or there's no valid authentication
 	pub async fn check_auth(
-		&self, auth: model::PlatformAuthentication,
+		&self, platform: model::PlatformType,
 	) -> Result<(), String> {
-		self.api.reauthenticate(auth).await
+		if !self.api.has_authenticated_client(platform).await {
+			return Err(
+				platform.as_ref().to_owned()
+					+ " does not have any authentication currently",
+			);
+		}
+		//self.api.reauthenticate(auth).await
+
+		Ok(())
+	}
+
+	/// Logs in to a platform
+	///
+	/// # Errors
+	///
+	/// If something failed with the login
+	pub async fn login(&self, login: model::PlatformLogin) -> Result<(), String> {
+		let platform = model::PlatformType::from(&login);
+		if self.api.has_authenticated_client(platform).await {
+			return Err(
+				platform.as_ref().to_owned()
+					+ " does not have any authentication currently",
+			);
+		}
+
+		let auth = self.api.login(login).await?;
+
+		if let Err(e) = self.store.update_authentication(auth).await {
+			return Err(e.to_string());
+		}
+
+		Ok(())
+	}
+
+	/// Removes authentication from a platform
+	///
+	/// # Errors
+	///
+	/// If something failed with logging out
+	pub async fn logout(
+		&self, platform: model::PlatformType,
+	) -> Result<(), String> {
+		self.api.logout(platform).await
 	}
 }

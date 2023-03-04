@@ -1,7 +1,7 @@
 //! Onlivfe's data structures
 
 use serde::{Deserialize, Serialize};
-use strum::EnumDiscriminants;
+use strum::{AsRefStr, EnumDiscriminants};
 use time::OffsetDateTime;
 
 pub mod cvr;
@@ -13,7 +13,7 @@ pub mod vrchat;
 	Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize, EnumDiscriminants,
 )]
 #[strum_discriminants(vis(pub))]
-#[strum_discriminants(derive(Serialize, Deserialize))]
+#[strum_discriminants(derive(AsRefStr, Serialize, Deserialize))]
 #[strum_discriminants(name(PlatformType))]
 #[serde(tag = "platform", content = "id")]
 pub enum PlatformAccountId {
@@ -25,7 +25,7 @@ pub enum PlatformAccountId {
 	NeosVR(neos::id::User),
 }
 
-/// Details of a platform accoun
+/// Details of a platform account
 #[derive(Debug, Clone)]
 pub enum PlatformAccount {
 	/// Details about a VRChat account
@@ -34,6 +34,20 @@ pub enum PlatformAccount {
 	ChilloutVR(Box<chilloutvr::model::UserDetails>),
 	/// Details about a NeosVR account
 	NeosVR(Box<neos::model::User>),
+}
+
+impl From<&PlatformAccount> for PlatformType {
+	fn from(value: &PlatformAccount) -> Self {
+		match value {
+			PlatformAccount::VRChat(_) => Self::VRChat,
+			PlatformAccount::ChilloutVR(_) => Self::ChilloutVR,
+			PlatformAccount::NeosVR(_) => Self::NeosVR,
+		}
+	}
+}
+
+impl From<PlatformAccount> for PlatformType {
+	fn from(value: PlatformAccount) -> Self { Self::from(&value) }
 }
 
 impl PlatformAccount {
@@ -73,6 +87,20 @@ pub enum PlatformAuthentication {
 	NeosVR(Box<neos::query::Authentication>),
 }
 
+impl From<&PlatformAuthentication> for PlatformType {
+	fn from(value: &PlatformAuthentication) -> Self {
+		match value {
+			PlatformAuthentication::VRChat(_) => Self::VRChat,
+			PlatformAuthentication::ChilloutVR(_) => Self::ChilloutVR,
+			PlatformAuthentication::NeosVR(_) => Self::NeosVR,
+		}
+	}
+}
+
+impl From<PlatformAuthentication> for PlatformType {
+	fn from(value: PlatformAuthentication) -> Self { Self::from(&value) }
+}
+
 impl PlatformAuthentication {
 	/// Get the ID of the platform account
 	#[must_use]
@@ -88,12 +116,26 @@ impl PlatformAuthentication {
 /// Struct required for trying to create a platform authentication
 #[derive(Debug, Clone)]
 pub enum PlatformLogin {
-	/// Authentication request for a VRChat account
-	VRChat(Box<(String, String)>),
+	/// Authentication request for a VRChat account, or a 2FA token
+	VRChat(Box<vrchat::LoginRequestPart>),
 	/// Authentication request for a ChilloutVR account
 	ChilloutVR(Box<chilloutvr::query::LoginCredentials>),
 	/// Authentication request for a NeosVR account
 	NeosVR(Box<neos::query::LoginCredentials>),
+}
+
+impl From<&PlatformLogin> for PlatformType {
+	fn from(value: &PlatformLogin) -> Self {
+		match value {
+			PlatformLogin::VRChat(_) => Self::VRChat,
+			PlatformLogin::ChilloutVR(_) => Self::ChilloutVR,
+			PlatformLogin::NeosVR(_) => Self::NeosVR,
+		}
+	}
+}
+
+impl From<PlatformLogin> for PlatformType {
+	fn from(value: PlatformLogin) -> Self { Self::from(&value) }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -37,5 +37,5 @@ neos = { version = "0.6.1", features = [] }
 #neos = { path = "../neos_rs", features = [] }
 chilloutvr = { version = "0.2.1", features = [] }
 #chilloutvr = { path = "../chilloutvr_rs", features = [] }
-vrc = { version = "0.1.0-alpha.2", features = [] }
+vrc = { version = "0.1.0-alpha.3", features = [] }
 #vrc = { path = "../vrc_rs", features = [] }
