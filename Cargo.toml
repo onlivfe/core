@@ -3,6 +3,8 @@ members = [
 	"onlivfe",
 	"onlivfe_cache_store",
 	"onlivfe_db_store",
+	"onlivfe_net",
+	"onlivfe_wrapper",
 ]
 
 [workspace.package]
@@ -17,6 +19,10 @@ keywords = ["vrc", "vrchat", "api", "rest"]
 
 [workspace.dependencies]
 onlivfe = { version = "=0.0.0-alpha.0", path = "onlivfe" }
+onlivfe_net = { version = "=0.0.0-alpha.0", path = "onlivfe_net" }
+onlivfe_wrapper = { version = "=0.0.0-alpha.0", path = "onlivfe_wrapper" }
+onlivfe_cache_store = { version = "=0.0.0-alpha.0", path = "onlivfe_cache_store" }
+onlivfe_db_store= { version = "=0.0.0-alpha.0", path = "onlivfe_db_store" }
 
 # Data mangling
 serde = { version = "1.0.152" }

@@ -1,4 +1,4 @@
-//! The core that powers [onlivfe](https://onlivfe.com).
+//! The core models that power [onlivfe](https://onlivfe.com).
 //!
 //! Very WIP.
 
@@ -15,100 +15,194 @@
 // Not much can be done about it :/
 #![allow(clippy::multiple_crate_versions)]
 
-mod api;
-pub mod model;
+use serde::{Deserialize, Serialize};
+use strum::{AsRefStr, EnumDiscriminants};
+use time::OffsetDateTime;
+
+pub mod cvr;
+pub mod neosvr;
 pub mod storage;
+pub mod vrchat;
 
-/// Initializes some static global parts of the core, setting up logging &
-/// loading env configs and such
-///
-/// # Errors
-///
-/// If there's an issue with setting up something
-pub fn init() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>>
-{
-	dotenvy::dotenv().ok();
-	tracing_subscriber::fmt()
-		.with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-		.try_init()
+/// The platform specific username/id/account.
+#[derive(
+	Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize, EnumDiscriminants,
+)]
+#[strum_discriminants(vis(pub))]
+#[strum_discriminants(derive(AsRefStr, Serialize, Deserialize))]
+#[strum_discriminants(name(PlatformType))]
+#[serde(tag = "platform", content = "id")]
+pub enum PlatformAccountId {
+	/// The platform is VRChat
+	VRChat(vrc::id::User),
+	/// The platform is ChilloutVR
+	ChilloutVR(chilloutvr::id::User),
+	/// The platform is NeosVR
+	NeosVR(neos::id::User),
 }
 
-/// The core struct that is used by apps/shells/clients to fetch data and invoke
-/// actions.
-///
-/// The purpose of it is to hide all kinds of IO logic, and just provide a clean
-/// interface. Implementation details of the API or caching shouldn't be visible
-/// trough the API it provides. Other than the fact that all data might be
-/// cached, so requesting fresh data should still be done.
-pub struct Onlivfe<StorageBackend: storage::OnlivfeStore> {
-	/// The local cache storage of data that is used before network requests
-	pub store: StorageBackend,
-	api: api::OnlivfeApiClient,
+/// Details of a platform account
+#[derive(Debug, Clone)]
+pub enum PlatformAccount {
+	/// Details about a VRChat account
+	VRChat(Box<vrc::model::User>),
+	/// Details about a ChilloutVR account
+	ChilloutVR(Box<chilloutvr::model::UserDetails>),
+	/// Details about a NeosVR account
+	NeosVR(Box<neos::model::User>),
 }
 
-impl<StorageBackend: storage::OnlivfeStore> Onlivfe<StorageBackend> {
-	/// Creates a new onlivfe client
-	///
-	/// # Errors
-	///
-	/// If there were issues initializing API clients due to an invalid user agent
-	pub fn new(
-		user_agent: String, store: StorageBackend,
-	) -> Result<Self, String> {
-		Ok(Self { store, api: api::OnlivfeApiClient::new(user_agent) })
-	}
-
-	/// Checks or extends authentication, adding it into use,
-	/// returning an error if it's invalid.
-	///
-	/// # Errors
-	///
-	/// If the request failed or there's no valid authentication
-	pub async fn check_auth(
-		&self, platform: model::PlatformType,
-	) -> Result<(), String> {
-		if !self.api.has_authenticated_client(platform).await {
-			return Err(
-				platform.as_ref().to_owned()
-					+ " does not have any authentication currently",
-			);
+impl From<&PlatformAccount> for PlatformType {
+	fn from(value: &PlatformAccount) -> Self {
+		match value {
+			PlatformAccount::VRChat(_) => Self::VRChat,
+			PlatformAccount::ChilloutVR(_) => Self::ChilloutVR,
+			PlatformAccount::NeosVR(_) => Self::NeosVR,
 		}
-		//self.api.reauthenticate(auth).await
-
-		Ok(())
 	}
+}
 
-	/// Logs in to a platform
-	///
-	/// # Errors
-	///
-	/// If something failed with the login
-	pub async fn login(&self, login: model::PlatformLogin) -> Result<(), String> {
-		let platform = model::PlatformType::from(&login);
-		if self.api.has_authenticated_client(platform).await {
-			return Err(
-				platform.as_ref().to_owned()
-					+ " does not have any authentication currently",
-			);
+impl From<PlatformAccount> for PlatformType {
+	fn from(value: PlatformAccount) -> Self { Self::from(&value) }
+}
+
+impl PlatformAccount {
+	/// Gets the ID of the account
+	#[must_use]
+	pub fn id(&self) -> PlatformAccountId {
+		match &self {
+			Self::VRChat(acc) => PlatformAccountId::VRChat(acc.id.clone()),
+			Self::ChilloutVR(acc) => {
+				PlatformAccountId::ChilloutVR(acc.base.id.clone())
+			}
+			Self::NeosVR(acc) => PlatformAccountId::NeosVR(acc.id.clone()),
 		}
+	}
 
-		let auth = self.api.login(login).await?;
-
-		if let Err(e) = self.store.update_authentication(auth).await {
-			return Err(e.to_string());
+	/// Gets the platform of the account
+	#[must_use]
+	pub const fn platform(&self) -> PlatformType {
+		match &self {
+			Self::VRChat(_) => PlatformType::VRChat,
+			Self::ChilloutVR(_) => PlatformType::ChilloutVR,
+			Self::NeosVR(_) => PlatformType::NeosVR,
 		}
-
-		Ok(())
 	}
+}
 
-	/// Removes authentication from a platform
-	///
-	/// # Errors
-	///
-	/// If something failed with logging out
-	pub async fn logout(
-		&self, platform: model::PlatformType,
-	) -> Result<(), String> {
-		self.api.logout(platform).await
+/// Credentials for a platform
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum PlatformAuthentication {
+	/// Authentication for a VRChat account
+	VRChat(Box<(vrc::id::User, vrc::query::Authentication)>),
+	/// Authentication for a ChilloutVR account
+	ChilloutVR(
+		Box<(chilloutvr::id::User, chilloutvr::query::SavedLoginCredentials)>,
+	),
+	/// Authentication for a NeosVR account
+	NeosVR(Box<neos::query::Authentication>),
+}
+
+impl From<&PlatformAuthentication> for PlatformType {
+	fn from(value: &PlatformAuthentication) -> Self {
+		match value {
+			PlatformAuthentication::VRChat(_) => Self::VRChat,
+			PlatformAuthentication::ChilloutVR(_) => Self::ChilloutVR,
+			PlatformAuthentication::NeosVR(_) => Self::NeosVR,
+		}
 	}
+}
+
+impl From<PlatformAuthentication> for PlatformType {
+	fn from(value: PlatformAuthentication) -> Self { Self::from(&value) }
+}
+
+impl PlatformAuthentication {
+	/// Get the ID of the platform account
+	#[must_use]
+	pub fn id(&self) -> PlatformAccountId {
+		match self {
+			Self::VRChat(t) => PlatformAccountId::from(t.0.clone()),
+			Self::ChilloutVR(t) => PlatformAccountId::from(t.0.clone()),
+			Self::NeosVR(v) => PlatformAccountId::from(v.user_id.clone()),
+		}
+	}
+}
+
+/// Struct required for trying to create a platform authentication
+#[derive(Debug, Clone)]
+pub enum PlatformLogin {
+	/// Authentication request for a VRChat account, or a 2FA token
+	VRChat(Box<vrchat::LoginRequestPart>),
+	/// Authentication request for a ChilloutVR account
+	ChilloutVR(Box<chilloutvr::query::LoginCredentials>),
+	/// Authentication request for a NeosVR account
+	NeosVR(Box<neos::query::LoginCredentials>),
+}
+
+impl From<&PlatformLogin> for PlatformType {
+	fn from(value: &PlatformLogin) -> Self {
+		match value {
+			PlatformLogin::VRChat(_) => Self::VRChat,
+			PlatformLogin::ChilloutVR(_) => Self::ChilloutVR,
+			PlatformLogin::NeosVR(_) => Self::NeosVR,
+		}
+	}
+}
+
+impl From<PlatformLogin> for PlatformType {
+	fn from(value: PlatformLogin) -> Self { Self::from(&value) }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+/// A general abstraction over different types of accounts
+pub struct GenericAccount {
+	#[serde(flatten)]
+	/// The ID of the account
+	pub id: PlatformAccountId,
+	/// Display name
+	pub display_name: String,
+	/// Icon URL
+	pub ico_url: String,
+}
+
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
+/// An ID of a profile
+pub struct ProfileId(uuid::Uuid);
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+/// A profile of "this is someone".
+pub struct Profile {
+	#[serde(skip)]
+	/// Only used in internal DB joins of data
+	pub primary_key: u32,
+	/// Used for mapping/importing/exporting profiles
+	pub sharing_id: ProfileId,
+	/// Nickname of the peep
+	pub nick: Option<String>,
+	/// Notes about the peep
+	pub notes: Option<String>,
+	/// A custom profile picture about the peep
+	pub pfp_url: Option<String>,
+}
+
+/// Metadata about the data from a platform
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlatformDataMetadata {
+	/// When the data was fetched
+	pub updated_at: OffsetDateTime,
+	/// Which account was used to fetch the data
+	pub updated_by: PlatformAccountId,
+}
+
+/// Metadata about the data from a platform with the data
+#[derive(Debug, Clone)]
+pub struct PlatformDataAndMetadata<T> {
+	/// The actual data itself
+	pub data: T,
+	/// The metadata about the data
+	pub metadata: PlatformDataMetadata,
 }

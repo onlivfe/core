@@ -1,6 +1,6 @@
 //! The storage interface that core will use
 
-use crate::model::{
+use crate::{
 	PlatformAccount,
 	PlatformAccountId,
 	PlatformAuthentication,

@@ -22,8 +22,6 @@ name = "onlivfe"
 path = "src/lib.rs"
 
 [dependencies]
-tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
-dotenvy = "0.15.6"
 
 serde = { workspace = true, features = ["derive"]  }
 serde_with = { workspace = true }
@@ -32,15 +30,12 @@ time = { workspace = true, features = ["macros"]  }
 strum = { workspace = true, features = ["derive"]  }
 
 async-trait = { workspace = true }
-log = { workspace = true }
-tracing = { workspace = true }
 futures = { workspace = true }
-tokio = { workspace = true }
 
 # Platform specifics
-vrc = { workspace = true, features = ["api_client"] }
-neos = { workspace = true, features = ["http_client"] }
-chilloutvr = { workspace = true, features = ["http_client", "ws_client"] }
+vrc = { workspace = true }
+neos = { workspace = true }
+chilloutvr = { workspace = true }
 
 [package.metadata.docs.rs]
 all-features = true

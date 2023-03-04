@@ -1,0 +1,34 @@
+[package]
+name = "onlivfe_wrapper"
+description = "Business logic & interface of onlivfe"
+documentation = "https://docs.rs/onlivfe_wrapper"
+
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+categories.workspace = true
+keywords.workspace = true
+
+include = ["src", "Cargo.toml", "LICENSE", "README.md"]
+
+[badges]
+maintenance = { status = "experimental" }
+
+[lib]
+name = "onlivfe_wrapper"
+path = "src/lib.rs"
+
+[dependencies]
+tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
+dotenvy = "0.15.6"
+
+onlivfe = { workspace = true }
+onlivfe_net = { workspace = true }
+
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "nightly"]

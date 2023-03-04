@@ -17,14 +17,12 @@
 
 use directories::ProjectDirs;
 use onlivfe::{
-	model::{
-		PlatformAccount,
-		PlatformAccountId,
-		PlatformAuthentication,
-		Profile,
-		ProfileId,
-	},
 	storage::OnlivfeStore,
+	PlatformAccount,
+	PlatformAccountId,
+	PlatformAuthentication,
+	Profile,
+	ProfileId,
 };
 use tokio::sync::RwLock;
 
@@ -82,11 +80,8 @@ impl OnlivfeStore for OnlivfeCacheStorageBackend {
 		&self, max: usize,
 	) -> Result<Vec<PlatformAccountId>, Self::Err> {
 		let accounts = self.accounts.read().await;
-		let accounts: Vec<PlatformAccountId> = accounts
-			.iter()
-			.take(max)
-			.map(onlivfe::model::PlatformAccount::id)
-			.collect();
+		let accounts: Vec<PlatformAccountId> =
+			accounts.iter().take(max).map(onlivfe::PlatformAccount::id).collect();
 		Ok(accounts)
 	}
 

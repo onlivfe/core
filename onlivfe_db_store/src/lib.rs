@@ -16,14 +16,12 @@
 #![allow(clippy::multiple_crate_versions)]
 
 use onlivfe::{
-	model::{
-		PlatformAccount,
-		PlatformAccountId,
-		PlatformAuthentication,
-		Profile,
-		ProfileId,
-	},
 	storage::OnlivfeStore,
+	PlatformAccount,
+	PlatformAccountId,
+	PlatformAuthentication,
+	Profile,
+	ProfileId,
 };
 
 #[derive(Debug)]

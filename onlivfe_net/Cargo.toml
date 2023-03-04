@@ -1,0 +1,35 @@
+[package]
+name = "onlivfe_net"
+description = "Network connection handling of onlivfe"
+documentation = "https://docs.rs/onlivfe_net"
+
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+homepage.workspace = true
+repository.workspace = true
+categories.workspace = true
+keywords.workspace = true
+
+include = ["src", "Cargo.toml", "LICENSE", "README.md"]
+
+[badges]
+maintenance = { status = "experimental" }
+
+[lib]
+name = "onlivfe_net"
+path = "src/lib.rs"
+
+[dependencies]
+onlivfe = { workspace = true }
+tokio = { workspace = true }
+
+# Platform specifics
+vrc = { workspace = true, features = ["api_client"] }
+neos = { workspace = true, features = ["http_client"] }
+chilloutvr = { workspace = true, features = ["http_client", "ws_client"] }
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "nightly"]
