@@ -28,6 +28,7 @@ use onlivfe::{
 /// A database backend storage for onlivfe
 pub struct OnlivfeDatabaseStorageBackend {
 	/// The main database connection pool
+	#[allow(dead_code)]
 	db: sqlx::SqlitePool,
 }
 
@@ -77,40 +78,42 @@ impl OnlivfeStore for OnlivfeDatabaseStorageBackend {
 	type Err = sqlx::Error;
 
 	async fn account_ids(
-		&self, max: usize,
+		&self, _max: usize,
 	) -> Result<Vec<PlatformAccountId>, Self::Err> {
 		todo!();
 	}
 
 	async fn account(
-		&self, account_id: PlatformAccountId,
+		&self, _account_id: PlatformAccountId,
 	) -> Result<PlatformAccount, Self::Err> {
 		todo!();
 	}
 
 	async fn account_profile_ids(
-		&self, account_id: PlatformAccountId,
+		&self, _account_id: PlatformAccountId,
 	) -> Result<Vec<ProfileId>, Self::Err> {
 		todo!();
 	}
 
 	async fn update_account(
-		&self, account: PlatformAccount,
+		&self, _account: PlatformAccount,
 	) -> Result<bool, Self::Err> {
 		todo!();
 	}
 
-	async fn profile(&self, profile_id: ProfileId) -> Result<Profile, Self::Err> {
+	async fn profile(
+		&self, _profile_id: ProfileId,
+	) -> Result<Profile, Self::Err> {
 		todo!();
 	}
 
 	async fn profile_account_ids(
-		&self, profile_id: ProfileId,
+		&self, _profile_id: ProfileId,
 	) -> Result<Vec<PlatformAccountId>, Self::Err> {
 		todo!();
 	}
 
-	async fn update_profile(&self, profile: Profile) -> Result<bool, Self::Err> {
+	async fn update_profile(&self, _profile: Profile) -> Result<bool, Self::Err> {
 		todo!();
 	}
 
@@ -121,7 +124,7 @@ impl OnlivfeStore for OnlivfeDatabaseStorageBackend {
 	}
 
 	async fn update_authentication(
-		&self, authentication: PlatformAuthentication,
+		&self, _authentication: PlatformAuthentication,
 	) -> Result<bool, Self::Err> {
 		todo!();
 	}

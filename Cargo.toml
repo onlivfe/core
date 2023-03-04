@@ -15,7 +15,7 @@ license = "AGPL-3.0-or-later"
 homepage = "https://onlivfe.com"
 repository = "https://github.com/onlivfe/core"
 categories = ["games"]
-keywords = ["vrc", "vrchat", "api", "rest"]
+keywords = ["onlivfe", "social_vr", "social_platform", "social_network", "social"]
 
 [workspace.dependencies]
 onlivfe = { version = "=0.0.0-alpha.0", path = "onlivfe" }
