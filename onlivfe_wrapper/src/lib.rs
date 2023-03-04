@@ -31,6 +31,14 @@ pub fn init() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>>
 		.try_init()
 }
 
+const USER_AGENT: &str = concat!(
+	"Onlivfe/",
+	env!("CARGO_PKG_VERSION"),
+	" (",
+	env!("CARGO_PKG_REPOSITORY"),
+	")",
+);
+
 /// The core struct that is used by apps/shells/clients to fetch data and invoke
 /// actions.
 ///
@@ -50,10 +58,11 @@ impl<StorageBackend: onlivfe::storage::OnlivfeStore> Onlivfe<StorageBackend> {
 	/// # Errors
 	///
 	/// If there were issues initializing API clients due to an invalid user agent
-	pub fn new(
-		user_agent: String, store: StorageBackend,
-	) -> Result<Self, String> {
-		Ok(Self { store, api: onlivfe_net::OnlivfeApiClient::new(user_agent) })
+	pub fn new(store: StorageBackend) -> Result<Self, String> {
+		Ok(Self {
+			store,
+			api: onlivfe_net::OnlivfeApiClient::new(USER_AGENT.to_owned()),
+		})
 	}
 
 	/// Checks or extends authentication, adding it into use,

@@ -16,7 +16,7 @@
 #![allow(clippy::multiple_crate_versions)]
 
 use serde::{Deserialize, Serialize};
-use strum::{AsRefStr, EnumDiscriminants};
+use strum::{AsRefStr, EnumCount, EnumDiscriminants, EnumIter};
 use time::OffsetDateTime;
 
 pub mod cvr;
@@ -29,7 +29,13 @@ pub mod vrchat;
 	Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize, EnumDiscriminants,
 )]
 #[strum_discriminants(vis(pub))]
-#[strum_discriminants(derive(AsRefStr, Serialize, Deserialize))]
+#[strum_discriminants(derive(
+	AsRefStr,
+	EnumIter,
+	EnumCount,
+	Serialize,
+	Deserialize
+))]
 #[strum_discriminants(name(PlatformType))]
 #[serde(tag = "platform", content = "id")]
 pub enum PlatformAccountId {

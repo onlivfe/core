@@ -1,6 +1,5 @@
 {
 	"recommendations": [
-		"sqlfluff.vscode-sqlfluff",
 		"rust-lang.rust-analyzer"
 	]
 }
