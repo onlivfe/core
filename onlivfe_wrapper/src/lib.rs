@@ -23,12 +23,23 @@ use onlivfe::{PlatformLogin, PlatformType};
 /// # Errors
 ///
 /// If there's an issue with setting up something
-pub fn init() -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>>
-{
+pub fn init(
+	name: impl Into<std::borrow::Cow<'static, str>>,
+	version: impl Into<std::borrow::Cow<'static, str>>,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
 	dotenvy::dotenv().ok();
 	tracing_subscriber::fmt()
 		.with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-		.try_init()
+		.try_init()?;
+
+	human_panic::setup_panic!(Metadata {
+		name: name.into(),
+		version: version.into(),
+		authors: "Onlivfe contributors".into(),
+		homepage: "onlivfe.com".into(),
+	});
+
+	Ok(())
 }
 
 const USER_AGENT: &str = concat!(

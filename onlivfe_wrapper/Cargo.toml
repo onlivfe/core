@@ -22,6 +22,7 @@ name = "onlivfe_wrapper"
 path = "src/lib.rs"
 
 [dependencies]
+human-panic = "1"
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
 dotenvy = "0.15.6"
 
