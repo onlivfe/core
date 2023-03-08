@@ -28,6 +28,6 @@ The `core` abstracts away storage backends, so that consumers can optionally pro
 This is done so that for example in the future `core` could easily be used via WebAssembly,
 as long as there is a compatible storage backend.
 
-In the short term, there's plans for a in-memory caching backend, which should be enough to start developing other parts of the system.
+In the short term, there's a in-memory caching backend, which should be enough to start developing other parts of the system.
+It's also hopefully good enough for the initial MVP of onlivfe.
 In the long term, a standard database backend is being developed, with proper support for historical data.
-
