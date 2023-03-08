@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 #[serde(tag = "platform", content = "id")]
 pub enum InstanceId {
 	/// The platform is VRChat
-	VRChat(vrc::id::Instance),
+	VRChat(vrc::id::WorldInstance),
 	/// The platform is ChilloutVR
 	ChilloutVR(chilloutvr::id::Instance),
 	/// The platform is NeosVR
@@ -29,16 +29,13 @@ crate::platform_specific!(Instance);
 impl Instance {
 	/// Gets the ID of the account
 	#[must_use]
-	pub fn id(&self) -> Option<InstanceId> {
+	pub fn id(&self) -> InstanceId {
 		match &self {
-			Self::VRChat(instance) => instance
-				.instance_id
-				.as_option()
-				.map(|id| InstanceId::VRChat(id.clone())),
+			Self::VRChat(instance) => InstanceId::VRChat(instance.id.clone()),
 			Self::ChilloutVR(instance) => {
-				Some(InstanceId::ChilloutVR(instance.base.id.clone()))
+				InstanceId::ChilloutVR(instance.base.id.clone())
 			}
-			Self::NeosVR(session) => Some(InstanceId::NeosVR(session.id.clone())),
+			Self::NeosVR(session) => InstanceId::NeosVR(session.id.clone()),
 		}
 	}
 }

@@ -137,7 +137,7 @@ impl OnlivfeStore for OnlivfeCacheStorageBackend {
 	) -> Result<Vec<InstanceId>, Self::Err> {
 		let instances = self.instances.read().await;
 		let instance_ids: Vec<InstanceId> =
-			instances.iter().take(max).filter_map(Instance::id).collect();
+			instances.iter().take(max).map(Instance::id).collect();
 		Ok(instance_ids)
 	}
 
@@ -145,9 +145,8 @@ impl OnlivfeStore for OnlivfeCacheStorageBackend {
 		&self, instance_id: InstanceId,
 	) -> Result<Instance, Self::Err> {
 		let instances = self.instances.read().await;
-		if let Some(instance) = instances
-			.iter()
-			.find(|instance| Some(&instance_id) == instance.id().as_ref())
+		if let Some(instance) =
+			instances.iter().find(|instance| instance_id == instance.id())
 		{
 			return Ok(instance.clone());
 		}
@@ -157,12 +156,6 @@ impl OnlivfeStore for OnlivfeCacheStorageBackend {
 	async fn update_instance(
 		&self, instance: Instance,
 	) -> Result<bool, Self::Err> {
-		if instance.id().is_none() {
-			return Err(std::io::Error::new(
-				std::io::ErrorKind::InvalidInput,
-				"Instance needs to have an ID to be stored",
-			));
-		}
 		let mut instances = self.instances.write().await;
 		if let Some(acc) =
 			instances.iter_mut().find(|inst| instance.id() == inst.id())

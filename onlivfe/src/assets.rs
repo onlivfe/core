@@ -18,7 +18,7 @@ crate::platform_specific!(WorldId);
 #[serde(tag = "platform", content = "id")]
 pub enum World {
 	/// The platform is VRChat
-	VRChat(vrc::model::World),
+	VRChat(Box<vrc::model::World>),
 	/// The platform is ChilloutVR
 	ChilloutVR(Box<chilloutvr::model::WorldDetails>),
 	/// The platform is NeosVR
@@ -31,7 +31,7 @@ impl World {
 	#[must_use]
 	pub fn id(&self) -> WorldId {
 		match &self {
-			Self::VRChat(world) => WorldId::VRChat(world.id.clone()),
+			Self::VRChat(world) => WorldId::VRChat(world.base.id.clone()),
 			Self::ChilloutVR(world) => {
 				WorldId::ChilloutVR(world.base.base.id.clone())
 			}
