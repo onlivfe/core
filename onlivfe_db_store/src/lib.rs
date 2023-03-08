@@ -17,11 +17,17 @@
 
 use onlivfe::{
 	storage::OnlivfeStore,
+	Authentication,
+	Avatar,
+	AvatarId,
+	Instance,
+	InstanceId,
 	PlatformAccount,
 	PlatformAccountId,
-	PlatformAuthentication,
 	Profile,
 	ProfileId,
+	World,
+	WorldId,
 };
 
 #[derive(Debug)]
@@ -101,6 +107,48 @@ impl OnlivfeStore for OnlivfeDatabaseStorageBackend {
 		todo!();
 	}
 
+	async fn instance_ids(
+		&self, _max: usize,
+	) -> Result<Vec<InstanceId>, Self::Err> {
+		todo!();
+	}
+
+	async fn instance(
+		&self, _instance_id: InstanceId,
+	) -> Result<Instance, Self::Err> {
+		todo!();
+	}
+
+	async fn update_instance(
+		&self, _instance: Instance,
+	) -> Result<bool, Self::Err> {
+		todo!();
+	}
+
+	async fn world_ids(&self, _max: usize) -> Result<Vec<WorldId>, Self::Err> {
+		todo!();
+	}
+
+	async fn world(&self, _world_id: WorldId) -> Result<World, Self::Err> {
+		todo!();
+	}
+
+	async fn update_world(&self, _world: World) -> Result<bool, Self::Err> {
+		todo!();
+	}
+
+	async fn avatar_ids(&self, _max: usize) -> Result<Vec<AvatarId>, Self::Err> {
+		todo!();
+	}
+
+	async fn avatar(&self, _avatar_id: AvatarId) -> Result<Avatar, Self::Err> {
+		todo!();
+	}
+
+	async fn update_avatar(&self, _world: Avatar) -> Result<bool, Self::Err> {
+		todo!();
+	}
+
 	async fn profile(
 		&self, _profile_id: ProfileId,
 	) -> Result<Profile, Self::Err> {
@@ -117,14 +165,12 @@ impl OnlivfeStore for OnlivfeDatabaseStorageBackend {
 		todo!();
 	}
 
-	async fn authentications(
-		&self,
-	) -> Result<Vec<PlatformAuthentication>, Self::Err> {
+	async fn authentications(&self) -> Result<Vec<Authentication>, Self::Err> {
 		todo!();
 	}
 
 	async fn update_authentication(
-		&self, _authentication: PlatformAuthentication,
+		&self, _authentication: Authentication,
 	) -> Result<bool, Self::Err> {
 		todo!();
 	}

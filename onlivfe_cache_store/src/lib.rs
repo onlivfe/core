@@ -18,11 +18,17 @@
 use directories::ProjectDirs;
 use onlivfe::{
 	storage::OnlivfeStore,
+	Authentication,
+	Avatar,
+	AvatarId,
+	Instance,
+	InstanceId,
 	PlatformAccount,
 	PlatformAccountId,
-	PlatformAuthentication,
 	Profile,
 	ProfileId,
+	World,
+	WorldId,
 };
 use tokio::sync::RwLock;
 
@@ -35,7 +41,10 @@ pub struct OnlivfeCacheStorageBackend {
 	profiles: RwLock<Vec<Profile>>,
 	accounts: RwLock<Vec<PlatformAccount>>,
 	profiles_to_accounts: RwLock<Vec<(PlatformAccountId, ProfileId)>>,
-	authentications: RwLock<Vec<PlatformAuthentication>>,
+	authentications: RwLock<Vec<Authentication>>,
+	instances: RwLock<Vec<Instance>>,
+	worlds: RwLock<Vec<World>>,
+	avatars: RwLock<Vec<Avatar>>,
 }
 
 impl OnlivfeCacheStorageBackend {
@@ -51,14 +60,13 @@ impl OnlivfeCacheStorageBackend {
 			})?;
 
 		let authentications = dirs.config_dir().join("auth.bson");
-		let authentications: Vec<PlatformAuthentication> =
-			if authentications.exists() {
-				let authentications =
-					std::fs::File::open(authentications).map_err(|e| e.to_string())?;
-				bson::from_reader(authentications).map_err(|e| e.to_string())?
-			} else {
-				vec![]
-			};
+		let authentications: Vec<Authentication> = if authentications.exists() {
+			let authentications =
+				std::fs::File::open(authentications).map_err(|e| e.to_string())?;
+			bson::from_reader(authentications).map_err(|e| e.to_string())?
+		} else {
+			vec![]
+		};
 
 		let store = Self {
 			dirs,
@@ -66,6 +74,9 @@ impl OnlivfeCacheStorageBackend {
 			authentications: RwLock::new(authentications),
 			profiles: RwLock::default(),
 			profiles_to_accounts: RwLock::default(),
+			instances: RwLock::default(),
+			worlds: RwLock::default(),
+			avatars: RwLock::default(),
 		};
 
 		Ok(store)
@@ -81,7 +92,7 @@ impl OnlivfeStore for OnlivfeCacheStorageBackend {
 	) -> Result<Vec<PlatformAccountId>, Self::Err> {
 		let accounts = self.accounts.read().await;
 		let accounts: Vec<PlatformAccountId> =
-			accounts.iter().take(max).map(onlivfe::PlatformAccount::id).collect();
+			accounts.iter().take(max).map(PlatformAccount::id).collect();
 		Ok(accounts)
 	}
 
@@ -121,6 +132,102 @@ impl OnlivfeStore for OnlivfeCacheStorageBackend {
 		Ok(false)
 	}
 
+	async fn instance_ids(
+		&self, max: usize,
+	) -> Result<Vec<InstanceId>, Self::Err> {
+		let instances = self.instances.read().await;
+		let instance_ids: Vec<InstanceId> =
+			instances.iter().take(max).filter_map(Instance::id).collect();
+		Ok(instance_ids)
+	}
+
+	async fn instance(
+		&self, instance_id: InstanceId,
+	) -> Result<Instance, Self::Err> {
+		let instances = self.instances.read().await;
+		if let Some(instance) = instances
+			.iter()
+			.find(|instance| Some(&instance_id) == instance.id().as_ref())
+		{
+			return Ok(instance.clone());
+		}
+		Err(std::io::Error::new(std::io::ErrorKind::NotFound, "Not found"))
+	}
+
+	async fn update_instance(
+		&self, instance: Instance,
+	) -> Result<bool, Self::Err> {
+		if instance.id().is_none() {
+			return Err(std::io::Error::new(
+				std::io::ErrorKind::InvalidInput,
+				"Instance needs to have an ID to be stored",
+			));
+		}
+		let mut instances = self.instances.write().await;
+		if let Some(acc) =
+			instances.iter_mut().find(|inst| instance.id() == inst.id())
+		{
+			*acc = instance;
+			return Ok(true);
+		}
+
+		instances.push(instance);
+		Ok(false)
+	}
+
+	async fn world_ids(&self, max: usize) -> Result<Vec<WorldId>, Self::Err> {
+		let worlds = self.worlds.read().await;
+		let world_ids: Vec<WorldId> =
+			worlds.iter().take(max).map(World::id).collect();
+		Ok(world_ids)
+	}
+
+	async fn world(&self, world_id: WorldId) -> Result<World, Self::Err> {
+		let worlds = self.worlds.read().await;
+		if let Some(world) = worlds.iter().find(|world| world_id == world.id()) {
+			return Ok(world.clone());
+		}
+		Err(std::io::Error::new(std::io::ErrorKind::NotFound, "Not found"))
+	}
+
+	async fn update_world(&self, world: World) -> Result<bool, Self::Err> {
+		let mut worlds = self.worlds.write().await;
+		if let Some(acc) = worlds.iter_mut().find(|avt| world.id() == avt.id()) {
+			*acc = world;
+			return Ok(true);
+		}
+
+		worlds.push(world);
+		Ok(false)
+	}
+
+	async fn avatar_ids(&self, max: usize) -> Result<Vec<AvatarId>, Self::Err> {
+		let avatars = self.avatars.read().await;
+		let avatar_ids: Vec<AvatarId> =
+			avatars.iter().take(max).map(Avatar::id).collect();
+		Ok(avatar_ids)
+	}
+
+	async fn avatar(&self, avatar_id: AvatarId) -> Result<Avatar, Self::Err> {
+		let avatars = self.avatars.read().await;
+		if let Some(avatar) = avatars.iter().find(|avatar| avatar_id == avatar.id())
+		{
+			return Ok(avatar.clone());
+		}
+		Err(std::io::Error::new(std::io::ErrorKind::NotFound, "Not found"))
+	}
+
+	async fn update_avatar(&self, avatar: Avatar) -> Result<bool, Self::Err> {
+		let mut avatars = self.avatars.write().await;
+		if let Some(acc) = avatars.iter_mut().find(|avt| avatar.id() == avt.id()) {
+			*acc = avatar;
+			return Ok(true);
+		}
+
+		avatars.push(avatar);
+		Ok(false)
+	}
+
 	async fn profile(&self, profile_id: ProfileId) -> Result<Profile, Self::Err> {
 		let profiles = self.profiles.read().await;
 		if let Some(profile) =
@@ -156,14 +263,12 @@ impl OnlivfeStore for OnlivfeCacheStorageBackend {
 		Ok(false)
 	}
 
-	async fn authentications(
-		&self,
-	) -> Result<Vec<PlatformAuthentication>, Self::Err> {
+	async fn authentications(&self) -> Result<Vec<Authentication>, Self::Err> {
 		Ok(self.authentications.read().await.clone())
 	}
 
 	async fn update_authentication(
-		&self, mut authentication: PlatformAuthentication,
+		&self, mut authentication: Authentication,
 	) -> Result<bool, Self::Err> {
 		let auth_id = authentication.id();
 		let mut authentications = self.authentications.write().await;

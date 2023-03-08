@@ -65,13 +65,13 @@ impl OnlivfeApiClient {
 					);
 				}
 
-				let user: vrc::model::User =
+				let user: vrc::model::CurrentAccount =
 					api.query(query::GetCurrentUser).await.map_err(|_| {
 						"Couldn't get VRC user after authenticating".to_owned()
 					})?;
 
 				std::mem::swap(&mut *lock, &mut VRChatClientState::Authenticated(api));
-				Ok((user.id, auth))
+				Ok((user.base.id, auth))
 			}
 			#[allow(clippy::manual_let_else)]
 			onlivfe::vrchat::LoginRequestPart::SecondFactor(second_factor) => {
@@ -93,14 +93,14 @@ impl OnlivfeApiClient {
 					"Internal error, authenticated API client's creation failed"
 						.to_string()
 				})?;
-				let user: vrc::model::User =
+				let user: vrc::model::CurrentAccount =
 					api.query(query::GetCurrentUser).await.map_err(|_| {
 						"Couldn't get VRC user after authenticating".to_owned()
 					})?;
 
 				std::mem::swap(&mut *lock, &mut VRChatClientState::Authenticated(api));
 
-				Ok((user.id, auth))
+				Ok((user.base.id, auth))
 			}
 		}
 	}

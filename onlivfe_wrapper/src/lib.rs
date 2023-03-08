@@ -15,7 +15,7 @@
 // Not much can be done about it :/
 #![allow(clippy::multiple_crate_versions)]
 
-use onlivfe::{PlatformLogin, PlatformType};
+use onlivfe::{LoginCredentials, PlatformType};
 
 /// Initializes some static global parts of the core, setting up logging &
 /// loading env configs and such
@@ -99,7 +99,7 @@ impl<StorageBackend: onlivfe::storage::OnlivfeStore> Onlivfe<StorageBackend> {
 	/// # Errors
 	///
 	/// If something failed with the login
-	pub async fn login(&self, login: PlatformLogin) -> Result<(), String> {
+	pub async fn login(&self, login: LoginCredentials) -> Result<(), String> {
 		let platform = PlatformType::from(&login);
 		if self.api.has_authenticated_client(platform).await {
 			return Err(

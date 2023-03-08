@@ -16,7 +16,7 @@
 #![allow(clippy::multiple_crate_versions)]
 
 use serde::{Deserialize, Serialize};
-use strum::{AsRefStr, EnumCount, EnumDiscriminants, EnumIter};
+use strum::{AsRefStr, EnumCount, EnumIter};
 use time::OffsetDateTime;
 
 pub mod cvr;
@@ -24,154 +24,57 @@ pub mod neosvr;
 pub mod storage;
 pub mod vrchat;
 
-/// The platform specific username/id/account.
+mod accounts;
+pub use accounts::*;
+mod instances;
+pub use instances::*;
+mod assets;
+pub use assets::*;
+
+/// The type of the platform/service/game/etc
 #[derive(
-	Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize, EnumDiscriminants,
+	Debug, Clone, Copy, AsRefStr, EnumIter, EnumCount, Serialize, Deserialize,
 )]
-#[strum_discriminants(vis(pub))]
-#[strum_discriminants(derive(
-	AsRefStr,
-	EnumIter,
-	EnumCount,
-	Serialize,
-	Deserialize
-))]
-#[strum_discriminants(name(PlatformType))]
-#[serde(tag = "platform", content = "id")]
-pub enum PlatformAccountId {
-	/// The platform is VRChat
-	VRChat(vrc::id::User),
-	/// The platform is ChilloutVR
-	ChilloutVR(chilloutvr::id::User),
-	/// The platform is NeosVR
-	NeosVR(neos::id::User),
+pub enum PlatformType {
+	/// It's VRC
+	VRChat,
+	/// It's CVR
+	ChilloutVR,
+	/// It's Neos
+	NeosVR,
 }
 
-/// Details of a platform account
-#[derive(Debug, Clone)]
-pub enum PlatformAccount {
-	/// Details about a VRChat account
-	VRChat(Box<vrc::model::User>),
-	/// Details about a ChilloutVR account
-	ChilloutVR(Box<chilloutvr::model::UserDetails>),
-	/// Details about a NeosVR account
-	NeosVR(Box<neos::model::User>),
-}
-
-impl From<&PlatformAccount> for PlatformType {
-	fn from(value: &PlatformAccount) -> Self {
-		match value {
-			PlatformAccount::VRChat(_) => Self::VRChat,
-			PlatformAccount::ChilloutVR(_) => Self::ChilloutVR,
-			PlatformAccount::NeosVR(_) => Self::NeosVR,
-		}
-	}
-}
-
-impl From<PlatformAccount> for PlatformType {
-	fn from(value: PlatformAccount) -> Self { Self::from(&value) }
-}
-
-impl PlatformAccount {
-	/// Gets the ID of the account
-	#[must_use]
-	pub fn id(&self) -> PlatformAccountId {
-		match &self {
-			Self::VRChat(acc) => PlatformAccountId::VRChat(acc.id.clone()),
-			Self::ChilloutVR(acc) => {
-				PlatformAccountId::ChilloutVR(acc.base.id.clone())
+macro_rules! platform_specific {
+	($name:ident) => {
+		impl From<&$name> for crate::PlatformType {
+			fn from(value: &$name) -> Self {
+				match value {
+					$name::VRChat(_) => Self::VRChat,
+					$name::ChilloutVR(_) => Self::ChilloutVR,
+					$name::NeosVR(_) => Self::NeosVR,
+				}
 			}
-			Self::NeosVR(acc) => PlatformAccountId::NeosVR(acc.id.clone()),
 		}
-	}
 
-	/// Gets the platform of the account
-	#[must_use]
-	pub const fn platform(&self) -> PlatformType {
-		match &self {
-			Self::VRChat(_) => PlatformType::VRChat,
-			Self::ChilloutVR(_) => PlatformType::ChilloutVR,
-			Self::NeosVR(_) => PlatformType::NeosVR,
+		impl From<$name> for crate::PlatformType {
+			fn from(value: $name) -> Self { Self::from(&value) }
 		}
-	}
-}
 
-/// Credentials for a platform
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum PlatformAuthentication {
-	/// Authentication for a VRChat account
-	VRChat(Box<(vrc::id::User, vrc::query::Authentication)>),
-	/// Authentication for a ChilloutVR account
-	ChilloutVR(
-		Box<(chilloutvr::id::User, chilloutvr::query::SavedLoginCredentials)>,
-	),
-	/// Authentication for a NeosVR account
-	NeosVR(Box<neos::query::Authentication>),
-}
-
-impl From<&PlatformAuthentication> for PlatformType {
-	fn from(value: &PlatformAuthentication) -> Self {
-		match value {
-			PlatformAuthentication::VRChat(_) => Self::VRChat,
-			PlatformAuthentication::ChilloutVR(_) => Self::ChilloutVR,
-			PlatformAuthentication::NeosVR(_) => Self::NeosVR,
+		impl $name {
+			/// Gets the platform type
+			#[must_use]
+			pub const fn platform(&self) -> crate::PlatformType {
+				match &self {
+					Self::VRChat(_) => crate::PlatformType::VRChat,
+					Self::ChilloutVR(_) => crate::PlatformType::ChilloutVR,
+					Self::NeosVR(_) => crate::PlatformType::NeosVR,
+				}
+			}
 		}
-	}
+	};
 }
 
-impl From<PlatformAuthentication> for PlatformType {
-	fn from(value: PlatformAuthentication) -> Self { Self::from(&value) }
-}
-
-impl PlatformAuthentication {
-	/// Get the ID of the platform account
-	#[must_use]
-	pub fn id(&self) -> PlatformAccountId {
-		match self {
-			Self::VRChat(t) => PlatformAccountId::from(t.0.clone()),
-			Self::ChilloutVR(t) => PlatformAccountId::from(t.0.clone()),
-			Self::NeosVR(v) => PlatformAccountId::from(v.user_id.clone()),
-		}
-	}
-}
-
-/// Struct required for trying to create a platform authentication
-#[derive(Debug, Clone)]
-pub enum PlatformLogin {
-	/// Authentication request for a VRChat account, or a 2FA token
-	VRChat(Box<vrchat::LoginRequestPart>),
-	/// Authentication request for a ChilloutVR account
-	ChilloutVR(Box<chilloutvr::query::LoginCredentials>),
-	/// Authentication request for a NeosVR account
-	NeosVR(Box<neos::query::LoginCredentials>),
-}
-
-impl From<&PlatformLogin> for PlatformType {
-	fn from(value: &PlatformLogin) -> Self {
-		match value {
-			PlatformLogin::VRChat(_) => Self::VRChat,
-			PlatformLogin::ChilloutVR(_) => Self::ChilloutVR,
-			PlatformLogin::NeosVR(_) => Self::NeosVR,
-		}
-	}
-}
-
-impl From<PlatformLogin> for PlatformType {
-	fn from(value: PlatformLogin) -> Self { Self::from(&value) }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-/// A general abstraction over different types of accounts
-pub struct GenericAccount {
-	#[serde(flatten)]
-	/// The ID of the account
-	pub id: PlatformAccountId,
-	/// Display name
-	pub display_name: String,
-	/// Icon URL
-	pub ico_url: String,
-}
+pub(crate) use platform_specific;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 /// An ID of a profile

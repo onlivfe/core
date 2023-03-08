@@ -17,7 +17,7 @@
 
 use chilloutvr::api_client::AuthenticatedCVR;
 use neos::api_client::AuthenticatedNeos;
-use onlivfe::{PlatformAuthentication, PlatformLogin, PlatformType};
+use onlivfe::{Authentication, LoginCredentials, PlatformType};
 use tokio::sync::RwLock;
 use vrchat::VRChatClientState;
 
@@ -82,18 +82,18 @@ impl OnlivfeApiClient {
 	///
 	/// If login fails, for example due to authentication error.
 	pub async fn login(
-		&self, auth: PlatformLogin,
-	) -> Result<PlatformAuthentication, String> {
+		&self, auth: LoginCredentials,
+	) -> Result<Authentication, String> {
 		Ok(match auth {
-			PlatformLogin::VRChat(auth) => PlatformAuthentication::VRChat(Box::new(
-				self.login_vrchat(*auth).await?,
-			)),
-			PlatformLogin::ChilloutVR(auth) => PlatformAuthentication::ChilloutVR(
+			LoginCredentials::VRChat(auth) => {
+				Authentication::VRChat(Box::new(self.login_vrchat(*auth).await?))
+			}
+			LoginCredentials::ChilloutVR(auth) => Authentication::ChilloutVR(
 				Box::new(self.login_chilloutvr(*auth).await?),
 			),
-			PlatformLogin::NeosVR(auth) => PlatformAuthentication::NeosVR(Box::new(
-				self.login_neosvr(*auth).await?,
-			)),
+			LoginCredentials::NeosVR(auth) => {
+				Authentication::NeosVR(Box::new(self.login_neosvr(*auth).await?))
+			}
 		})
 	}
 
