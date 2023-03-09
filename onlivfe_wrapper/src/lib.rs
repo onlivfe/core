@@ -60,6 +60,7 @@ const USER_AGENT: &str = concat!(
 pub struct Onlivfe<StorageBackend: onlivfe::storage::OnlivfeStore> {
 	/// The local cache storage of data that is used before network requests
 	pub store: StorageBackend,
+	/// The unified API client
 	api: onlivfe_net::OnlivfeApiClient,
 }
 

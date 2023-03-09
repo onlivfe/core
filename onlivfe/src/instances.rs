@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 /// The platform specific instance/session ID.
 #[derive(Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "platform", content = "id")]
+#[serde(tag = "platform", content = "instance_id")]
 pub enum InstanceId {
 	/// The platform is VRChat
 	VRChat(vrc::id::WorldInstance),
@@ -15,7 +15,7 @@ crate::platform_specific!(InstanceId);
 
 /// The platform specific instance/session.
 #[derive(Clone, Debug, Hash, Serialize, Deserialize)]
-#[serde(tag = "platform", content = "id")]
+#[serde(tag = "platform", content = "instance")]
 pub enum Instance {
 	/// The platform is VRChat
 	VRChat(vrc::model::Instance),

@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 /// The platform specific username/id/account.
 #[derive(Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "platform", content = "id")]
+#[serde(tag = "platform", content = "user_id")]
 pub enum PlatformAccountId {
 	/// The platform is VRChat
 	VRChat(vrc::id::User),
@@ -15,6 +15,7 @@ crate::platform_specific!(PlatformAccountId);
 
 /// Details of a platform account
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "platform", content = "user")]
 pub enum PlatformAccount {
 	/// Details about a VRChat account
 	VRChat(vrc::model::AnyUser),
@@ -41,8 +42,22 @@ impl PlatformAccount {
 	}
 }
 
+/// Details of a platform account friend
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "platform", content = "friend")]
+pub enum PlatformFriends {
+	/// Details about a VRChat account
+	VRChat(Vec<vrc::model::Friend>),
+	/// Details about a ChilloutVR account
+	ChilloutVR(chilloutvr::model::Friends),
+	/// Details about a NeosVR account
+	NeosVR(Vec<neos::model::Friend>),
+}
+crate::platform_specific!(PlatformFriends);
+
 /// Credentials for a platform
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "platform", content = "auth")]
 pub enum Authentication {
 	/// Authentication for a VRChat account
 	VRChat(Box<(vrc::id::User, vrc::query::Authentication)>),
@@ -69,6 +84,7 @@ impl Authentication {
 
 /// Struct required for trying to create a platform authentication
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "platform", content = "login")]
 pub enum LoginCredentials {
 	/// Authentication request for a VRChat account, or a 2FA token
 	VRChat(Box<crate::vrchat::LoginRequestPart>),

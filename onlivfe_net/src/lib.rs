@@ -17,7 +17,14 @@
 
 use chilloutvr::api_client::AuthenticatedCVR;
 use neos::api_client::AuthenticatedNeos;
-use onlivfe::{Authentication, LoginCredentials, PlatformType};
+use onlivfe::{
+	Authentication,
+	Instance,
+	InstanceId,
+	LoginCredentials,
+	PlatformFriends,
+	PlatformType,
+};
 use tokio::sync::RwLock;
 use vrchat::VRChatClientState;
 
@@ -97,11 +104,68 @@ impl OnlivfeApiClient {
 		})
 	}
 
-	/*
-	pub async fn reauthenticate(
-		&self, auth: crate::model::PlatformAuthentication,
-	) -> Result<(), String> {
-		todo!();
+	/// Retrieves the friends list from a platform
+	///
+	/// # Errors
+	///
+	/// If something failed with getting the friends
+	pub async fn friends(
+		&self,
+		// TODO: Change to enum with platform specific query configs
+		platform: PlatformType,
+	) -> Result<PlatformFriends, String> {
+		match platform {
+			PlatformType::VRChat => {
+				Ok(PlatformFriends::VRChat(self.friends_vrchat().await?))
+			}
+			PlatformType::ChilloutVR => {
+				Ok(PlatformFriends::ChilloutVR(self.friends_chilloutvr().await?))
+			}
+			PlatformType::NeosVR => {
+				Ok(PlatformFriends::NeosVR(self.friends_neosvr().await?))
+			}
+		}
 	}
-	*/
+
+	/// Retrieves details about an instance from the platform
+	///
+	/// # Errors
+	///
+	/// If something failed with getting the instance
+	pub async fn instance(
+		&self, instance_id: InstanceId,
+	) -> Result<Instance, String> {
+		match instance_id {
+			InstanceId::VRChat(instance_id) => {
+				Ok(Instance::VRChat(self.instance_vrchat(instance_id).await?))
+			}
+			InstanceId::ChilloutVR(instance_id) => {
+				Ok(Instance::ChilloutVR(self.instance_chilloutvr(instance_id).await?))
+			}
+			InstanceId::NeosVR(instance_id) => {
+				Ok(Instance::NeosVR(self.instance_neosvr(instance_id).await?))
+			}
+		}
+	}
+
+	/// Used to restore authentication for example on app startup
+	///
+	/// # Errors
+	///
+	/// If an error happened with the authentication check/extension/login/etc
+	pub async fn reauthenticate(
+		&self, auth: Authentication,
+	) -> Result<Authentication, String> {
+		match auth {
+			Authentication::VRChat(auth) => Ok(Authentication::VRChat(Box::new(
+				self.reauthenticate_vrchat(auth.0, auth.1).await?,
+			))),
+			Authentication::ChilloutVR(auth) => Ok(Authentication::ChilloutVR(
+				Box::new(self.reauthenticate_chilloutvr(auth.0, auth.1).await?),
+			)),
+			Authentication::NeosVR(auth) => Ok(Authentication::NeosVR(Box::new(
+				(&self.reauthenticate_neosvr(*auth).await?).into(),
+			))),
+		}
+	}
 }

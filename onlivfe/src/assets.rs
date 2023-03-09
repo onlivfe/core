@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 /// The platform specific instance/session ID.
 #[derive(Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "platform", content = "id")]
+#[serde(tag = "platform", content = "world_id")]
 pub enum WorldId {
 	/// The platform is VRChat
 	VRChat(vrc::id::World),
@@ -15,7 +15,7 @@ crate::platform_specific!(WorldId);
 
 /// The platform specific instance/session.
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(tag = "platform", content = "id")]
+#[serde(tag = "platform", content = "world")]
 pub enum World {
 	/// The platform is VRChat
 	VRChat(Box<vrc::model::World>),
@@ -42,7 +42,7 @@ impl World {
 
 /// The platform specific instance/session ID.
 #[derive(Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "platform", content = "id")]
+#[serde(tag = "platform", content = "avatar_id")]
 pub enum AvatarId {
 	/// The platform is VRChat
 	VRChat(vrc::id::Avatar),
@@ -55,7 +55,7 @@ crate::platform_specific!(AvatarId);
 
 /// The platform specific instance/session.
 #[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(tag = "platform", content = "id")]
+#[serde(tag = "platform", content = "avatar")]
 pub enum Avatar {
 	/// The platform is VRChat
 	VRChat(vrc::model::Avatar),
