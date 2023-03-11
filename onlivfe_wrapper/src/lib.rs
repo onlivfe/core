@@ -27,10 +27,22 @@ pub fn init(
 	name: impl Into<std::borrow::Cow<'static, str>>,
 	version: impl Into<std::borrow::Cow<'static, str>>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
-	dotenvy::dotenv().ok();
-	tracing_subscriber::fmt()
-		.with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
-		.try_init()?;
+	#[cfg(target_os = "android")]
+	{
+		android_logger::init_once(
+			android_logger::Config::default()
+				.with_max_level(log::LevelFilter::Trace)
+				.with_tag("onlivfe"),
+		);
+	}
+	#[cfg(not(target_os = "android"))]
+	{
+		dotenvy::dotenv().ok();
+		tracing_subscriber::fmt()
+			.with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+			.try_init()?;
+	}
+
 
 	human_panic::setup_panic!(Metadata {
 		name: name.into(),
@@ -59,7 +71,7 @@ const USER_AGENT: &str = concat!(
 /// cached, so requesting fresh data should still be done.
 pub struct Onlivfe<StorageBackend: onlivfe::storage::OnlivfeStore> {
 	/// The local cache storage of data that is used before network requests
-	pub store: StorageBackend,
+	store: StorageBackend,
 	/// The unified API client
 	api: onlivfe_net::OnlivfeApiClient,
 }
