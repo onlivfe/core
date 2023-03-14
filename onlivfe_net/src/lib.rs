@@ -22,7 +22,7 @@ use onlivfe::{
 	Instance,
 	InstanceId,
 	LoginCredentials,
-	PlatformFriends,
+	PlatformFriend,
 	PlatformType,
 };
 use tokio::sync::RwLock;
@@ -113,16 +113,16 @@ impl OnlivfeApiClient {
 		&self,
 		// TODO: Change to enum with platform specific query configs
 		platform: PlatformType,
-	) -> Result<PlatformFriends, String> {
+	) -> Result<Vec<PlatformFriend>, String> {
 		match platform {
 			PlatformType::VRChat => {
-				Ok(PlatformFriends::VRChat(self.friends_vrchat().await?))
+				Ok(self.friends_vrchat().await?.into_iter().map(|fren| PlatformFriend::VRChat(fren)).collect())
 			}
 			PlatformType::ChilloutVR => {
-				Ok(PlatformFriends::ChilloutVR(self.friends_chilloutvr().await?))
+				Ok(self.friends_chilloutvr().await?.into_iter().map(|fren| PlatformFriend::ChilloutVR(fren)).collect())
 			}
 			PlatformType::NeosVR => {
-				Ok(PlatformFriends::NeosVR(self.friends_neosvr().await?))
+				Ok(self.friends_neosvr().await?.into_iter().map(|fren| PlatformFriend::NeosVR(fren)).collect())
 			}
 		}
 	}

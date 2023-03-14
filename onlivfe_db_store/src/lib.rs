@@ -24,6 +24,7 @@ use onlivfe::{
 	InstanceId,
 	PlatformAccount,
 	PlatformAccountId,
+	PlatformFriend,
 	Profile,
 	ProfileId,
 	World,
@@ -103,6 +104,24 @@ impl OnlivfeStore for OnlivfeDatabaseStorageBackend {
 
 	async fn update_account(
 		&self, _account: PlatformAccount,
+	) -> Result<bool, Self::Err> {
+		todo!();
+	}
+
+	async fn friend_ids(
+		&self, _max: usize,
+	) -> Result<Vec<PlatformAccountId>, Self::Err> {
+		todo!();
+	}
+
+	async fn friend(
+		&self, _friend_id: PlatformAccountId,
+	) -> Result<PlatformFriend, Self::Err> {
+		todo!();
+	}
+
+	async fn update_friend(
+		&self, _friend: PlatformFriend,
 	) -> Result<bool, Self::Err> {
 		todo!();
 	}

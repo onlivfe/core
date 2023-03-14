@@ -33,7 +33,7 @@ pub use assets::*;
 
 /// The type of the platform/service/game/etc
 #[derive(
-	Debug, Clone, Copy, AsRefStr, EnumIter, EnumCount, Serialize, Deserialize,
+	Debug, Clone, Copy, AsRefStr, EnumIter, EnumCount, Serialize, Deserialize, PartialEq, Eq, Hash
 )]
 pub enum PlatformType {
 	/// It's VRC

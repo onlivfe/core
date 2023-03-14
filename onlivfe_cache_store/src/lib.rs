@@ -25,6 +25,7 @@ use onlivfe::{
 	InstanceId,
 	PlatformAccount,
 	PlatformAccountId,
+	PlatformFriend,
 	Profile,
 	ProfileId,
 	World,
@@ -40,6 +41,7 @@ pub struct OnlivfeCacheStorageBackend {
 	dirs: ProjectDirs,
 	profiles: RwLock<Vec<Profile>>,
 	accounts: RwLock<Vec<PlatformAccount>>,
+	friends: RwLock<Vec<PlatformFriend>>,
 	profiles_to_accounts: RwLock<Vec<(PlatformAccountId, ProfileId)>>,
 	authentications: RwLock<Vec<Authentication>>,
 	instances: RwLock<Vec<Instance>>,
@@ -71,6 +73,7 @@ impl OnlivfeCacheStorageBackend {
 		let store = Self {
 			dirs,
 			accounts: RwLock::default(),
+			friends: RwLock::default(),
 			authentications: RwLock::new(authentications),
 			profiles: RwLock::default(),
 			profiles_to_accounts: RwLock::default(),
@@ -129,6 +132,39 @@ impl OnlivfeStore for OnlivfeCacheStorageBackend {
 		}
 
 		accounts.push(account);
+		Ok(false)
+	}
+
+	async fn friend_ids(
+		&self, max: usize,
+	) -> Result<Vec<PlatformAccountId>, Self::Err> {
+		let friends = self.friends.read().await;
+		let friend_ids: Vec<PlatformAccountId> =
+			friends.iter().take(max).map(PlatformFriend::id).collect();
+		Ok(friend_ids)
+	}
+
+	async fn friend(
+		&self, friend_id: PlatformAccountId,
+	) -> Result<PlatformFriend, Self::Err> {
+		let friends = self.friends.read().await;
+		if let Some(friend) = friends.iter().find(|fren| friend_id == fren.id()) {
+			return Ok(friend.clone());
+		}
+		Err(std::io::Error::new(std::io::ErrorKind::NotFound, "Not found"))
+	}
+
+	async fn update_friend(
+		&self, friend: PlatformFriend,
+	) -> Result<bool, Self::Err> {
+		let mut friends = self.friends.write().await;
+		if let Some(fren) = friends.iter_mut().find(|fren| friend.id() == fren.id())
+		{
+			*fren = friend;
+			return Ok(true);
+		}
+
+		friends.push(friend);
 		Ok(false)
 	}
 

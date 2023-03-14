@@ -1,8 +1,8 @@
 use chilloutvr::{
 	api_client::{ApiClient, AuthenticatedCVR, UnauthenticatedCVR},
 	id,
-	model::{ExtendedInstanceDetails, Friends},
-	query::{self, SavedLoginCredentials},
+	model::{ExtendedInstanceDetails, Friend},
+	query::{self, AuthType, SavedLoginCredentials},
 };
 
 use crate::OnlivfeApiClient;
@@ -30,7 +30,7 @@ impl OnlivfeApiClient {
 		Ok(instance_resp.data)
 	}
 
-	pub(crate) async fn friends_chilloutvr(&self) -> Result<Friends, String> {
+	pub(crate) async fn friends_chilloutvr(&self) -> Result<Vec<Friend>, String> {
 		let api = self.cvr.read().await;
 		let api =
 			api.as_ref().ok_or_else(|| "CVR API not authenticated".to_owned())?;
@@ -40,7 +40,7 @@ impl OnlivfeApiClient {
 			.await
 			.map_err(|_| "CVR friends query failed".to_owned())?;
 
-		Ok(friends_resp.data)
+		Ok(friends_resp.data.0)
 	}
 
 	pub(crate) async fn login_chilloutvr(
@@ -59,7 +59,7 @@ impl OnlivfeApiClient {
 			})?;
 
 		let user_auth = api
-			.query(auth)
+			.query(AuthType::LoginProfile(auth))
 			.await
 			.map_err(|_| "CVR authentication failed".to_owned())?
 			.data;

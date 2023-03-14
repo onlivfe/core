@@ -45,15 +45,28 @@ impl PlatformAccount {
 /// Details of a platform account friend
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "platform", content = "friend")]
-pub enum PlatformFriends {
+pub enum PlatformFriend {
 	/// Details about a VRChat account
-	VRChat(Vec<vrc::model::Friend>),
+	VRChat(vrc::model::Friend),
 	/// Details about a ChilloutVR account
-	ChilloutVR(chilloutvr::model::Friends),
+	ChilloutVR(chilloutvr::model::Friend),
 	/// Details about a NeosVR account
-	NeosVR(Vec<neos::model::Friend>),
+	NeosVR(neos::model::Friend),
 }
-crate::platform_specific!(PlatformFriends);
+crate::platform_specific!(PlatformFriend);
+
+impl PlatformFriend {
+	/// Get the ID of the platform friend
+	#[must_use]
+	pub fn id(&self) -> PlatformAccountId {
+		match self {
+			Self::VRChat(t) => PlatformAccountId::from(t.base.id.clone()),
+			Self::ChilloutVR(t) => PlatformAccountId::from(t.base.id.clone()),
+			Self::NeosVR(v) => PlatformAccountId::from(v.id.clone()),
+		}
+	}
+}
+
 
 /// Credentials for a platform
 #[derive(Debug, Clone, Serialize, Deserialize)]

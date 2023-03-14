@@ -15,7 +15,13 @@
 // Not much can be done about it :/
 #![allow(clippy::multiple_crate_versions)]
 
-use onlivfe::{LoginCredentials, PlatformType};
+#[macro_use]
+extern crate tracing;
+
+use std::sync::Arc;
+
+use onlivfe::{LoginCredentials, PlatformAccount, PlatformType};
+use strum::IntoEnumIterator;
 
 /// Initializes some static global parts of the core, setting up logging &
 /// loading env configs and such
@@ -62,6 +68,15 @@ const USER_AGENT: &str = concat!(
 	")",
 );
 
+#[non_exhaustive]
+pub struct FriendsQuery {
+	pub page: u32,
+}
+
+impl Default for FriendsQuery {
+	fn default() -> Self { Self { ..Default::default() } }
+}
+
 /// The core struct that is used by apps/shells/clients to fetch data and invoke
 /// actions.
 ///
@@ -71,9 +86,9 @@ const USER_AGENT: &str = concat!(
 /// cached, so requesting fresh data should still be done.
 pub struct Onlivfe<StorageBackend: onlivfe::storage::OnlivfeStore> {
 	/// The local cache storage of data that is used before network requests
-	store: StorageBackend,
+	store: Arc<StorageBackend>,
 	/// The unified API client
-	api: onlivfe_net::OnlivfeApiClient,
+	api: Arc<onlivfe_net::OnlivfeApiClient>,
 }
 
 impl<StorageBackend: onlivfe::storage::OnlivfeStore> Onlivfe<StorageBackend> {
@@ -84,8 +99,8 @@ impl<StorageBackend: onlivfe::storage::OnlivfeStore> Onlivfe<StorageBackend> {
 	/// If there were issues initializing API clients due to an invalid user agent
 	pub fn new(store: StorageBackend) -> Result<Self, String> {
 		Ok(Self {
-			store,
-			api: onlivfe_net::OnlivfeApiClient::new(USER_AGENT.to_owned()),
+			store: Arc::new(store),
+			api: Arc::new(onlivfe_net::OnlivfeApiClient::new(USER_AGENT.to_owned())),
 		})
 	}
 
@@ -137,5 +152,40 @@ impl<StorageBackend: onlivfe::storage::OnlivfeStore> Onlivfe<StorageBackend> {
 	/// If something failed with logging out
 	pub async fn logout(&self, platform: PlatformType) -> Result<(), String> {
 		self.api.logout(platform).await
+	}
+
+	/// Removes authentication from a platform
+	///
+	/// # Errors
+	///
+	/// If something failed with logging out
+	pub async fn friends(
+		&self, query: FriendsQuery,
+	) -> Result<Vec<PlatformAccount>, String> {
+		let api = self.api.clone();
+		let store = self.store.clone();
+
+		// TODO: Check last retrieval date
+		/*tokio::spawn(async move {
+			// TODO: Proper parallel
+			for platform in PlatformType::iter() {
+				match api.friends(platform).await {
+					Ok(friends) => {
+						if let Err(e) = store.update_friends(friends).await {
+							error!("Failed to store fetched friend: {e}");
+						}
+					}
+					Err(e) => {
+						error!("Failed to fetch friends: {e}");
+						// TODO: Sending errors to wrapper consumer
+					}
+				};
+			}
+		});
+		*/
+
+		let friends = self.store.accounts(512).await.map_err(|e| e.to_string())?;
+
+		Ok(friends)
 	}
 }

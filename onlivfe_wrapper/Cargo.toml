@@ -23,13 +23,16 @@ path = "src/lib.rs"
 
 [dependencies]
 human-panic = "1"
-log = "0.4" 
+tracing = "0.1"
 
 onlivfe = { workspace = true }
 onlivfe_net = { workspace = true }
+tokio = { workspace = true }
+strum = { workspace = true  }
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = "0.13.0"
+log = "0.4" 
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
 tracing-subscriber = { version = "0.3.16", features = ["env-filter"] }
