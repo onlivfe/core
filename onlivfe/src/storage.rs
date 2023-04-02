@@ -248,7 +248,6 @@ pub trait OnlivfeStore: Send + Sync + std::fmt::Debug {
 		Ok(ids)
 	}
 
-
 	/// Retrieves the details for a profile
 	async fn profile(&self, profile_id: ProfileId) -> Result<Profile, Self::Err>;
 	/// Retrieves the account IDs for a profile

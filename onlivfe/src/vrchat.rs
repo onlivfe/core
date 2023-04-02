@@ -1,6 +1,7 @@
 //! `VRChat` related onlivfe models
 
 use serde::{Deserialize, Serialize};
+pub use vrc::*;
 
 impl From<vrc::id::User> for super::PlatformAccountId {
 	fn from(id: vrc::id::User) -> Self { Self::VRChat(id) }

@@ -1,5 +1,7 @@
 //! `NeosVR` related onlivfe models
 
+pub use neos::*;
+
 impl From<neos::id::User> for super::PlatformAccountId {
 	fn from(id: neos::id::User) -> Self { Self::NeosVR(id) }
 }

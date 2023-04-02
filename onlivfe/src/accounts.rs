@@ -67,7 +67,6 @@ impl PlatformFriend {
 	}
 }
 
-
 /// Credentials for a platform
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "platform", content = "auth")]

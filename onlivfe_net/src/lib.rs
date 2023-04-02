@@ -115,15 +115,30 @@ impl OnlivfeApiClient {
 		platform: PlatformType,
 	) -> Result<Vec<PlatformFriend>, String> {
 		match platform {
-			PlatformType::VRChat => {
-				Ok(self.friends_vrchat().await?.into_iter().map(|fren| PlatformFriend::VRChat(fren)).collect())
-			}
-			PlatformType::ChilloutVR => {
-				Ok(self.friends_chilloutvr().await?.into_iter().map(|fren| PlatformFriend::ChilloutVR(fren)).collect())
-			}
-			PlatformType::NeosVR => {
-				Ok(self.friends_neosvr().await?.into_iter().map(|fren| PlatformFriend::NeosVR(fren)).collect())
-			}
+			PlatformType::VRChat => Ok(
+				self
+					.friends_vrchat()
+					.await?
+					.into_iter()
+					.map(|friend| PlatformFriend::VRChat(friend))
+					.collect(),
+			),
+			PlatformType::ChilloutVR => Ok(
+				self
+					.friends_chilloutvr()
+					.await?
+					.into_iter()
+					.map(|friend| PlatformFriend::ChilloutVR(friend))
+					.collect(),
+			),
+			PlatformType::NeosVR => Ok(
+				self
+					.friends_neosvr()
+					.await?
+					.into_iter()
+					.map(|friend| PlatformFriend::NeosVR(friend))
+					.collect(),
+			),
 		}
 	}
 

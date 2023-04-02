@@ -49,7 +49,6 @@ pub fn init(
 			.try_init()?;
 	}
 
-
 	human_panic::setup_panic!(Metadata {
 		name: name.into(),
 		version: version.into(),

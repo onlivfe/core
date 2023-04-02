@@ -1,5 +1,7 @@
 //! `ChilloutVR` related onlivfe models
 
+pub use chilloutvr::*;
+
 impl From<chilloutvr::id::User> for super::PlatformAccountId {
 	fn from(id: chilloutvr::id::User) -> Self { Self::ChilloutVR(id) }
 }
