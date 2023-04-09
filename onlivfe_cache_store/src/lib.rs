@@ -70,13 +70,32 @@ impl OnlivfeCacheStorageBackend {
 			vec![]
 		};
 
+		let profiles = dirs.config_dir().join("profiles.bson");
+		let profiles: Vec<Profile> = if profiles.exists() {
+			let profiles =
+				std::fs::File::open(profiles).map_err(|e| e.to_string())?;
+			bson::from_reader(profiles).map_err(|e| e.to_string())?
+		} else {
+			vec![]
+		};
+
+		let profiles_to_accounts = dirs.config_dir().join("profiles.bson");
+		let profiles_to_accounts: Vec<(PlatformAccountId, ProfileId)> =
+			if profiles_to_accounts.exists() {
+				let profiles_to_accounts = std::fs::File::open(profiles_to_accounts)
+					.map_err(|e| e.to_string())?;
+				bson::from_reader(profiles_to_accounts).map_err(|e| e.to_string())?
+			} else {
+				vec![]
+			};
+
 		let store = Self {
 			dirs,
 			accounts: RwLock::default(),
 			friends: RwLock::default(),
 			authentications: RwLock::new(authentications),
-			profiles: RwLock::default(),
-			profiles_to_accounts: RwLock::default(),
+			profiles: RwLock::new(profiles),
+			profiles_to_accounts: RwLock::new(profiles_to_accounts),
 			instances: RwLock::default(),
 			worlds: RwLock::default(),
 			avatars: RwLock::default(),
@@ -279,17 +298,52 @@ impl OnlivfeStore for OnlivfeCacheStorageBackend {
 		Ok(platform_account_ids)
 	}
 
-	async fn update_profile(&self, profile: Profile) -> Result<bool, Self::Err> {
+	async fn update_profile(&self, mut profile: Profile) -> Result<bool, Self::Err> {
+		let profile_id = profile.sharing_id.clone();
 		let mut profiles = self.profiles.write().await;
-		if let Some(prof) =
-			profiles.iter_mut().find(|prof| profile.sharing_id == prof.sharing_id)
+
+		let mut swapped = false;
+
+		if let Some(auth) =
+			profiles.iter_mut().find(|profile| profile.sharing_id == profile_id)
 		{
-			*prof = profile;
-			return Ok(true);
+			std::mem::swap(&mut *auth, &mut profile);
+			swapped = true;
 		}
 
-		profiles.push(profile);
-		Ok(false)
+		let write_result = bson::to_vec(&*profiles).map(|bytes| {
+			std::fs::write(self.dirs.config_dir().join("auth.bson"), bytes)
+		});
+
+		// Undo the operation before returning, as we want same state on disk and in
+		// cache always
+		let mut before_exit = || {
+			if swapped {
+				if let Some(prof) =
+					profiles.iter_mut().find(|profile| profile.sharing_id == profile_id)
+				{
+					std::mem::swap(&mut *prof, &mut profile);
+				}
+			};
+		};
+
+		match write_result {
+			Ok(Ok(_)) => {}
+			Ok(Err(e)) => {
+				before_exit();
+				return Err(e);
+			}
+			Err(e) => {
+				before_exit();
+				return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, e));
+			}
+		};
+
+		if !swapped {
+			profiles.push(profile);
+		}
+
+		Ok(swapped)
 	}
 
 	async fn authentications(&self) -> Result<Vec<Authentication>, Self::Err> {
