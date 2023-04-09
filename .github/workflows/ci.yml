@@ -6,14 +6,6 @@ on: # rebuild any PRs and main branch changes
 
 name: CI
 jobs:
-  audit:
-    name: Audit
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v1
-      - uses: actions-rs/audit-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
   deny:
     name: Deny
     runs-on: ubuntu-latest
