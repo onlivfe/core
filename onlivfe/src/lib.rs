@@ -26,6 +26,8 @@ pub mod vrchat;
 
 mod accounts;
 pub use accounts::*;
+mod auth;
+pub use auth::*;
 mod instances;
 pub use instances::*;
 mod assets;
@@ -83,8 +85,62 @@ macro_rules! platform_specific {
 		}
 	};
 }
-
 pub(crate) use platform_specific;
+
+macro_rules! platform_id {
+	($(#[$meta:meta])*
+	$name:ident { $vrc:ty, $cvr:ty, $neos:ty }) => {
+		$(#[$meta])*
+		#[derive(Clone, Hash, PartialEq, Eq, Debug, serde::Serialize, serde::Deserialize)]
+		#[serde(tag = "platform", content = "id")]
+		pub enum $name {
+			/// VRChat variant of the ID
+			VRChat($vrc),
+			/// ChilloutVR variant of the ID
+			ChilloutVR($cvr),
+			/// NeosVR variant of the ID
+			NeosVR($neos),
+		}
+		crate::platform_specific!($name);
+	};
+}
+pub(crate) use platform_id;
+
+macro_rules! platform_enum {
+	($(#[$meta:meta])*
+	$name:ident { $vrc:ty, $cvr:ty, $neos:ty }) => {
+		$(#[$meta])*
+		#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+		#[serde(tag = "platform", content = "data")]
+		pub enum $name {
+			/// VRChat variant
+			VRChat(crate::PlatformDataAndMetadata<$vrc, vrc::id::User>),
+			/// ChilloutVR variant
+			ChilloutVR(crate::PlatformDataAndMetadata<$cvr, chilloutvr::id::User>),
+			/// NeosVR variant
+			NeosVR(crate::PlatformDataAndMetadata<$neos, neos::id::User>),
+		}
+		crate::platform_specific!($name);
+	};
+}
+pub(crate) use platform_enum;
+
+macro_rules! platform_enum_id {
+	($id:ty, $name:ty { $vrc:expr, $cvr:expr, $neos:expr } $local_var:ident) => {
+		impl $name {
+			/// Gets the ID
+			#[must_use]
+			pub fn id(&self) -> $id {
+				match self {
+					Self::VRChat($local_var) => <$id>::VRChat($vrc),
+					Self::ChilloutVR($local_var) => <$id>::ChilloutVR($cvr),
+					Self::NeosVR($local_var) => <$id>::NeosVR($neos),
+				}
+			}
+		}
+	};
+}
+pub(crate) use platform_enum_id;
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq, Serialize, Deserialize)]
 /// An ID of a profile
@@ -110,18 +166,52 @@ pub struct Profile {
 /// Metadata about the data from a platform
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct PlatformDataMetadata {
+pub struct PlatformDataMetadata<Id> {
 	/// When the data was fetched
 	pub updated_at: OffsetDateTime,
 	/// Which account was used to fetch the data
-	pub updated_by: PlatformAccountId,
+	pub updated_by: Id,
 }
 
 /// Metadata about the data from a platform with the data
-#[derive(Debug, Clone)]
-pub struct PlatformDataAndMetadata<T> {
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlatformDataAndMetadata<T, Id> {
 	/// The actual data itself
 	pub data: T,
 	/// The metadata about the data
-	pub metadata: PlatformDataMetadata,
+	pub metadata: PlatformDataMetadata<Id>,
+}
+
+impl<T, Id> PlatformDataAndMetadata<T, Id> {
+	/// Creates a new instance of this with the current timestamp
+	pub fn new_now(data: T, updated_by: Id) -> Self {
+		Self {
+			data,
+			metadata: PlatformDataMetadata {
+				updated_at: OffsetDateTime::now_utc(),
+				updated_by,
+			},
+		}
+	}
+
+	/// Borrows the data and metadata as a tuple
+	pub const fn as_tuple(&self) -> (&T, &PlatformDataMetadata<Id>) {
+		(&self.data, &self.metadata)
+	}
+}
+
+impl<T, Id> From<(T, PlatformDataMetadata<Id>)>
+	for PlatformDataAndMetadata<T, Id>
+{
+	fn from(value: (T, PlatformDataMetadata<Id>)) -> Self {
+		Self { data: value.0, metadata: value.1 }
+	}
+}
+
+impl<T, Id> From<PlatformDataAndMetadata<T, Id>>
+	for (T, PlatformDataMetadata<Id>)
+{
+	fn from(value: PlatformDataAndMetadata<T, Id>) -> Self {
+		(value.data, value.metadata)
+	}
 }

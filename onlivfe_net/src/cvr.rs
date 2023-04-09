@@ -1,5 +1,5 @@
 use chilloutvr::{
-	api_client::{ApiClient, AuthenticatedCVR, UnauthenticatedCVR},
+	api_client::{ApiClient, UnauthenticatedCVR},
 	id,
 	model::{ExtendedInstanceDetails, Friend},
 	query::{self, AuthType, SavedLoginCredentials},
@@ -8,19 +8,36 @@ use chilloutvr::{
 use crate::OnlivfeApiClient;
 
 impl OnlivfeApiClient {
+	#[instrument]
+	pub(crate) async fn logout_chilloutvr(
+		&self, id: &id::User,
+	) -> Result<(), String> {
+		if let Some(_client) = self.cvr.write().await.remove(id) {
+			return Err("Logout query not implemented yet".to_string());
+		}
+		warn!("Tried to log out of non-existent account {:?}", id);
+		Ok(())
+	}
+
+	#[instrument]
 	pub(crate) async fn reauthenticate_chilloutvr(
-		&self, _id: id::User, _login_profile: SavedLoginCredentials,
+		&self, id: &id::User, login_profile: SavedLoginCredentials,
 	) -> Result<(id::User, query::SavedLoginCredentials), String> {
-		let _api = self.cvr.read().await;
+		trace!("Reauthentcating CVR API as {:?}", id);
+		let rw_lock_guard = self.cvr.read().await;
+		let _api = rw_lock_guard.get(id);
 		Err("Not implemented!".to_string())
 	}
 
+	#[instrument]
 	pub(crate) async fn instance_chilloutvr(
-		&self, instance_id: id::Instance,
+		&self, id: &id::User, instance_id: id::Instance,
 	) -> Result<ExtendedInstanceDetails, String> {
-		let api = self.cvr.read().await;
-		let api =
-			api.as_ref().ok_or_else(|| "CVR API not authenticated".to_owned())?;
+		trace!("Fetching CVR instance {:?} as {:?}", instance_id, id);
+		let rw_lock_guard = self.cvr.read().await;
+		let api = rw_lock_guard
+			.get(id)
+			.ok_or_else(|| "CVR API not authenticated".to_owned())?;
 		let query = query::Instance { instance_id };
 		let instance_resp = api
 			.query(query)
@@ -30,10 +47,15 @@ impl OnlivfeApiClient {
 		Ok(instance_resp.data)
 	}
 
-	pub(crate) async fn friends_chilloutvr(&self) -> Result<Vec<Friend>, String> {
-		let api = self.cvr.read().await;
-		let api =
-			api.as_ref().ok_or_else(|| "CVR API not authenticated".to_owned())?;
+	#[instrument]
+	pub(crate) async fn friends_chilloutvr(
+		&self, id: &id::User,
+	) -> Result<Vec<Friend>, String> {
+		trace!("Fetching CVR friends as {:?}", id);
+		let rw_lock_guard = self.cvr.read().await;
+		let api = rw_lock_guard
+			.get(id)
+			.ok_or_else(|| "CVR API not authenticated".to_owned())?;
 		let query = query::FriendList();
 		let friends_resp = api
 			.query(query)
@@ -43,18 +65,12 @@ impl OnlivfeApiClient {
 		Ok(friends_resp.data.0)
 	}
 
+	#[instrument]
 	pub(crate) async fn login_chilloutvr(
 		&self, auth: query::LoginCredentials,
-	) -> Result<(id::User, query::SavedLoginCredentials), String> {
-		let mut lock = self.cvr.write().await;
-		let mut api = None;
-		std::mem::swap(&mut *lock, &mut api);
-		let api = api
-			.map_or_else(
-				|| UnauthenticatedCVR::new(self.user_agent.clone()),
-				AuthenticatedCVR::downgrade,
-			)
-			.map_err(|_| {
+	) -> Result<(id::User, chilloutvr::query::SavedLoginCredentials), String> {
+		let api =
+			UnauthenticatedCVR::new(self.user_agent.clone()).map_err(|_| {
 				"Internal error, CVR API client creation failed".to_string()
 			})?;
 
@@ -63,6 +79,8 @@ impl OnlivfeApiClient {
 			.await
 			.map_err(|_| "CVR authentication failed".to_owned())?
 			.data;
+		trace!("Auth request for {:?} was successful", &user_auth.user_id);
+
 		let (id, creds) = (
 			user_auth.user_id.clone(),
 			query::SavedLoginCredentials::from(user_auth),
@@ -72,7 +90,7 @@ impl OnlivfeApiClient {
 				.to_owned()
 		})?;
 
-		std::mem::swap(&mut *lock, &mut Some(api));
+		self.cvr.write().await.insert(id.clone(), api);
 		Ok((id, creds))
 	}
 }

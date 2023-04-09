@@ -20,8 +20,13 @@ extern crate tracing;
 
 use std::sync::Arc;
 
-use onlivfe::{LoginCredentials, PlatformAccount, PlatformType};
-use strum::IntoEnumIterator;
+use onlivfe::{
+	LoginCredentials,
+	PlatformAccount,
+	PlatformAccountId,
+	PlatformType,
+};
+use onlivfe_net::LoginError;
 
 /// Initializes some static global parts of the core, setting up logging &
 /// loading env configs and such
@@ -40,6 +45,7 @@ pub fn init(
 				.with_max_level(log::LevelFilter::Trace)
 				.with_tag("onlivfe"),
 		);
+		trace!("Initialized tracing");
 	}
 	#[cfg(not(target_os = "android"))]
 	{
@@ -47,6 +53,7 @@ pub fn init(
 		tracing_subscriber::fmt()
 			.with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
 			.try_init()?;
+		trace!("Initialized tracing");
 	}
 
 	human_panic::setup_panic!(Metadata {
@@ -66,15 +73,6 @@ const USER_AGENT: &str = concat!(
 	env!("CARGO_PKG_REPOSITORY"),
 	")",
 );
-
-#[non_exhaustive]
-pub struct FriendsQuery {
-	pub page: u32,
-}
-
-impl Default for FriendsQuery {
-	fn default() -> Self { Self { ..Default::default() } }
-}
 
 /// The core struct that is used by apps/shells/clients to fetch data and invoke
 /// actions.
@@ -110,7 +108,7 @@ impl<StorageBackend: onlivfe::storage::OnlivfeStore> Onlivfe<StorageBackend> {
 	///
 	/// If the request failed or there's no valid authentication
 	pub async fn check_auth(&self, platform: PlatformType) -> Result<(), String> {
-		if !self.api.has_authenticated_client(platform).await {
+		if self.api.authenticated_clients(platform).await.is_empty() {
 			return Err(
 				platform.as_ref().to_owned()
 					+ " does not have any authentication currently",
@@ -126,46 +124,36 @@ impl<StorageBackend: onlivfe::storage::OnlivfeStore> Onlivfe<StorageBackend> {
 	/// # Errors
 	///
 	/// If something failed with the login
-	pub async fn login(&self, login: LoginCredentials) -> Result<(), String> {
-		let platform = PlatformType::from(&login);
-		if self.api.has_authenticated_client(platform).await {
-			return Err(
-				platform.as_ref().to_owned()
-					+ " does not have any authentication currently",
-			);
-		}
-
+	pub async fn login(&self, login: LoginCredentials) -> Result<(), LoginError> {
 		let auth = self.api.login(login).await?;
 
 		if let Err(e) = self.store.update_authentication(auth).await {
-			return Err(e.to_string());
+			return Err(LoginError::Error(e.to_string()));
 		}
 
 		Ok(())
 	}
 
-	/// Removes authentication from a platform
+	/// Removes authentication
 	///
 	/// # Errors
 	///
 	/// If something failed with logging out
-	pub async fn logout(&self, platform: PlatformType) -> Result<(), String> {
-		self.api.logout(platform).await
+	pub async fn logout(&self, id: &PlatformAccountId) -> Result<(), String> {
+		self.api.logout(id).await
 	}
 
-	/// Removes authentication from a platform
+	/// Gets friends from a platform
 	///
 	/// # Errors
 	///
-	/// If something failed with logging out
-	pub async fn friends(
-		&self, query: FriendsQuery,
-	) -> Result<Vec<PlatformAccount>, String> {
-		let api = self.api.clone();
-		let store = self.store.clone();
+	/// If something failed with retrieving the friends of the platform
+	pub async fn friends(&self) -> Result<Vec<PlatformAccount>, String> {
+		let _api = self.api.clone();
+		let _store = self.store.clone();
 
 		// TODO: Check last retrieval date
-		/*tokio::spawn(async move {
+		/* tokio::spawn(async move {
 			// TODO: Proper parallel
 			for platform in PlatformType::iter() {
 				match api.friends(platform).await {
@@ -180,8 +168,7 @@ impl<StorageBackend: onlivfe::storage::OnlivfeStore> Onlivfe<StorageBackend> {
 					}
 				};
 			}
-		});
-		*/
+		});*/
 
 		let friends = self.store.accounts(512).await.map_err(|e| e.to_string())?;
 

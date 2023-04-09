@@ -23,7 +23,7 @@ path = "src/lib.rs"
 
 [dependencies]
 human-panic = "1"
-tracing = "0.1"
+tracing = { workspace = true }
 
 onlivfe = { workspace = true }
 onlivfe_net = { workspace = true }

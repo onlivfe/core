@@ -1,81 +1,45 @@
-use serde::{Deserialize, Serialize};
-
-/// The platform specific instance/session ID.
-#[derive(Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "platform", content = "world_id")]
-pub enum WorldId {
-	/// The platform is VRChat
-	VRChat(vrc::id::World),
-	/// The platform is ChilloutVR
-	ChilloutVR(chilloutvr::id::Asset),
-	/// The platform is NeosVR
-	NeosVR(neos::id::Record),
-}
-crate::platform_specific!(WorldId);
-
-/// The platform specific instance/session.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(tag = "platform", content = "world")]
-pub enum World {
-	/// The platform is VRChat
-	VRChat(Box<vrc::model::World>),
-	/// The platform is ChilloutVR
-	ChilloutVR(Box<chilloutvr::model::WorldDetails>),
-	/// The platform is NeosVR
-	NeosVR(Box<neos::model::Record>),
-}
-crate::platform_specific!(World);
-
-impl World {
-	/// Gets the ID of the account
-	#[must_use]
-	pub fn id(&self) -> WorldId {
-		match &self {
-			Self::VRChat(world) => WorldId::VRChat(world.base.id.clone()),
-			Self::ChilloutVR(world) => {
-				WorldId::ChilloutVR(world.base.base.id.clone())
-			}
-			Self::NeosVR(record) => WorldId::NeosVR(record.id.clone()),
-		}
+crate::platform_id!(
+	/// The platform specific instance/session ID.
+	WorldId {
+		vrc::id::World,
+		chilloutvr::id::Asset,
+		neos::id::Record
 	}
-}
+);
 
-/// The platform specific instance/session ID.
-#[derive(Clone, Debug, Hash, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(tag = "platform", content = "avatar_id")]
-pub enum AvatarId {
-	/// The platform is VRChat
-	VRChat(vrc::id::Avatar),
-	/// The platform is ChilloutVR
-	ChilloutVR(chilloutvr::id::Asset),
-	/// The platform is NeosVR
-	NeosVR(neos::id::Record),
-}
-crate::platform_specific!(AvatarId);
-
-/// The platform specific instance/session.
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(tag = "platform", content = "avatar")]
-pub enum Avatar {
-	/// The platform is VRChat
-	VRChat(vrc::model::Avatar),
-	/// The platform is ChilloutVR
-	ChilloutVR(Box<chilloutvr::model::AvatarDetails>),
-	/// The platform is NeosVR
-	NeosVR(Box<neos::model::Record>),
-}
-crate::platform_specific!(Avatar);
-
-impl Avatar {
-	/// Gets the ID of the account
-	#[must_use]
-	pub fn id(&self) -> AvatarId {
-		match &self {
-			Self::VRChat(avatar) => AvatarId::VRChat(avatar.id.clone()),
-			Self::ChilloutVR(avatar) => {
-				AvatarId::ChilloutVR(avatar.base.base.id.clone())
-			}
-			Self::NeosVR(record) => AvatarId::NeosVR(record.id.clone()),
-		}
+crate::platform_enum!(
+	/// The platform specific instance/session.
+	World {
+		Box<vrc::model::World>,
+		Box<chilloutvr::model::WorldDetails>,
+		Box<neos::model::Record>
 	}
-}
+);
+crate::platform_enum_id!(WorldId, World {
+	v.data.base.id.clone(),
+	v.data.base.base.id.clone(),
+	v.data.id.clone()
+} v);
+
+crate::platform_id!(
+	/// The platform specific avatar ID.
+	AvatarId {
+		vrc::id::Avatar,
+		chilloutvr::id::Asset,
+		neos::id::Record
+	}
+);
+
+crate::platform_enum!(
+	/// The platform specific avatar.
+	Avatar {
+		Box<vrc::model::Avatar>,
+		Box<chilloutvr::model::AvatarDetails>,
+		Box<neos::model::Record>
+	}
+);
+crate::platform_enum_id!(AvatarId, Avatar {
+	v.data.id.clone(),
+	v.data.base.base.id.clone(),
+	v.data.id.clone()
+} v);

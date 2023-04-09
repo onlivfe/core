@@ -19,5 +19,5 @@ pub enum LoginRequestPart {
 	/// Login with credentials
 	LoginRequest(vrc::query::Authenticating),
 	/// Continuing authentication with second factor
-	SecondFactor(vrc::query::VerifySecondFactor),
+	SecondFactor((vrc::id::User, vrc::query::VerifySecondFactor)),
 }

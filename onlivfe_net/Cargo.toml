@@ -24,6 +24,8 @@ path = "src/lib.rs"
 [dependencies]
 onlivfe = { workspace = true }
 tokio = { workspace = true }
+time = { workspace = true }
+tracing = { workspace = true }
 
 # Platform specifics
 vrc = { workspace = true, features = ["api_client"] }
