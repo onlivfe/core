@@ -22,10 +22,13 @@ use std::sync::Arc;
 
 use onlivfe::{
 	Authentication,
+	Instance,
+	InstanceId,
 	LoginCredentials,
+	PlatformAccount,
 	PlatformAccountId,
 	PlatformFriend,
-	PlatformType, PlatformAccount,
+	PlatformType,
 };
 use onlivfe_net::LoginError;
 use strum::IntoEnumIterator;
@@ -267,7 +270,7 @@ impl<StorageBackend: onlivfe::storage::OnlivfeStore> Onlivfe<StorageBackend> {
 	///
 	/// # Errors
 	///
-	/// If something failed with retrieving the latform account
+	/// If something failed with retrieving the platform account
 	pub async fn platform_account(
 		&self, get_as: PlatformAccountId, account_id: PlatformAccountId,
 	) -> Result<PlatformAccount, String> {
@@ -301,5 +304,44 @@ impl<StorageBackend: onlivfe::storage::OnlivfeStore> Onlivfe<StorageBackend> {
 		}
 
 		platform_account.ok_or_else(|| "Platform account not found".to_owned())
+	}
+
+	/// Gets details about an instance
+	///
+	/// # Errors
+	///
+	/// If something failed with retrieving the details of the instance
+	pub async fn instance(
+		&self, get_as: PlatformAccountId, instance_id: InstanceId,
+	) -> Result<Instance, String> {
+		let store = self.store.clone();
+
+		let mut instance = store.instance(instance_id.clone()).await.ok();
+
+		let latest_updated_at =
+			instance.as_ref().map_or(time::OffsetDateTime::UNIX_EPOCH, |instance| {
+				instance.metadata().updated_at
+			});
+
+		// Only update our data every minute at max
+		if latest_updated_at
+			< time::OffsetDateTime::now_utc() - time::Duration::MINUTE
+		{
+			let api = self.api.clone();
+			match api.instance(get_as, instance_id).await {
+				Ok(instance_from_api) => {
+					let mut found_instance = Some(instance_from_api.clone());
+					std::mem::swap(&mut found_instance, &mut instance);
+					if let Err(e) = store.update_instance(instance_from_api).await {
+						error!("Failed to store fetched instance: {e}");
+					}
+				}
+				Err(e) => {
+					error!("Failed to fetch instance: {e}");
+				}
+			};
+		}
+
+		instance.ok_or_else(|| "Instance not found".to_owned())
 	}
 }
