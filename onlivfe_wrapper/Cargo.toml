@@ -29,6 +29,7 @@ onlivfe = { workspace = true }
 onlivfe_net = { workspace = true }
 tokio = { workspace = true }
 strum = { workspace = true  }
+time = { workspace = true  }
 
 [target.'cfg(target_os = "android")'.dependencies]
 android_logger = "0.13.0"

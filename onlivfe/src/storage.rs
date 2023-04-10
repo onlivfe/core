@@ -296,6 +296,11 @@ pub trait OnlivfeStore: Send + Sync + std::fmt::Debug {
 	async fn update_authentication(
 		&self, auth: Authentication,
 	) -> Result<bool, Self::Err>;
+	/// Removes a platform's authentication,
+	/// returning true if it happened or false if it didn't exist
+	async fn remove_authentication(
+		&self, auth: PlatformAccountId,
+	) -> Result<bool, Self::Err>;
 	/// Update or store authentications,
 	/// returning the IDs of updated authentications
 	async fn update_authentications(

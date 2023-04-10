@@ -298,7 +298,9 @@ impl OnlivfeStore for OnlivfeCacheStorageBackend {
 		Ok(platform_account_ids)
 	}
 
-	async fn update_profile(&self, mut profile: Profile) -> Result<bool, Self::Err> {
+	async fn update_profile(
+		&self, mut profile: Profile,
+	) -> Result<bool, Self::Err> {
 		let profile_id = profile.sharing_id.clone();
 		let mut profiles = self.profiles.write().await;
 
@@ -398,5 +400,42 @@ impl OnlivfeStore for OnlivfeCacheStorageBackend {
 		}
 
 		Ok(swapped)
+	}
+
+	async fn remove_authentication(
+		&self, id: PlatformAccountId,
+	) -> Result<bool, Self::Err> {
+		let mut authentications = self.authentications.write().await;
+
+		let removed_auth = authentications
+			.iter()
+			.position(|auth| auth.id() == id)
+			.map(|index| authentications.swap_remove(index));
+
+		let write_result = bson::to_vec(&*authentications).map(|bytes| {
+			std::fs::write(self.dirs.config_dir().join("auth.bson"), bytes)
+		});
+
+		// Undo the operation before returning, as we want same state on disk and in
+		// cache always
+		let before_exit = || {
+			if let Some(removed_auth) = removed_auth {
+				authentications.push(removed_auth);
+			}
+		};
+
+		match write_result {
+			Ok(Ok(_)) => {}
+			Ok(Err(e)) => {
+				before_exit();
+				return Err(e);
+			}
+			Err(e) => {
+				before_exit();
+				return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, e));
+			}
+		};
+
+		Ok(true)
 	}
 }

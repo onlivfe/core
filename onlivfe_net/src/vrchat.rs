@@ -2,8 +2,8 @@ use onlivfe::vrchat::LoginRequestPart;
 use vrc::{
 	api_client::{ApiClient, AuthenticatedVRC},
 	id,
-	model::Friend,
 	model::Instance,
+	model::{AnyUser, Friend},
 	query::{self, Logout},
 };
 
@@ -73,6 +73,27 @@ impl OnlivfeApiClient {
 					.map_err(|_| "VRChat instance query failed".to_owned())?;
 
 				Ok(instance)
+			}
+			_ => Err("VRChat API not authenticated".to_string()),
+		}
+	}
+
+	#[instrument]
+	pub(crate) async fn user_vrchat(
+		&self, get_as: &id::User, user_id: id::User,
+	) -> Result<AnyUser, String> {
+		trace!("Fetching user {:?} as {:?}", user_id, get_as);
+		let rw_lock_guard = self.vrc.read().await;
+		let api = rw_lock_guard.get(get_as);
+		match api {
+			Some(VRChatClientState::Authenticated(api)) => {
+				let query = query::User { id: user_id };
+				let user = api
+					.query(query)
+					.await
+					.map_err(|_| "VRChat instance query failed".to_owned())?;
+
+				Ok(user)
 			}
 			_ => Err("VRChat API not authenticated".to_string()),
 		}

@@ -21,12 +21,14 @@ extern crate tracing;
 use std::sync::Arc;
 
 use onlivfe::{
+	Authentication,
 	LoginCredentials,
-	PlatformAccount,
 	PlatformAccountId,
-	PlatformType,
+	PlatformFriend,
+	PlatformType, PlatformAccount,
 };
 use onlivfe_net::LoginError;
+use strum::IntoEnumIterator;
 
 /// Initializes some static global parts of the core, setting up logging &
 /// loading env configs and such
@@ -74,6 +76,7 @@ const USER_AGENT: &str = concat!(
 	")",
 );
 
+#[derive(Debug)]
 /// The core struct that is used by apps/shells/clients to fetch data and invoke
 /// actions.
 ///
@@ -101,22 +104,27 @@ impl<StorageBackend: onlivfe::storage::OnlivfeStore> Onlivfe<StorageBackend> {
 		})
 	}
 
-	/// Checks or extends authentication, adding it into use,
-	/// returning an error if it's invalid.
+	/// Gets all the different platforms, useful for syncing unrelated codebases
+	/// to the core's capabilities
+	#[instrument]
+	pub async fn platforms(&self) -> Vec<PlatformType> {
+		PlatformType::iter().collect()
+	}
+
+	/// Gets currently authenticated API user IDs.
 	///
 	/// # Errors
 	///
 	/// If the request failed or there's no valid authentication
-	pub async fn check_auth(&self, platform: PlatformType) -> Result<(), String> {
-		if self.api.authenticated_clients(platform).await.is_empty() {
-			return Err(
-				platform.as_ref().to_owned()
-					+ " does not have any authentication currently",
-			);
+	pub async fn authenticated_accounts(
+		&self,
+	) -> Result<Vec<PlatformAccountId>, String> {
+		let mut ids = vec![];
+		for platform in PlatformType::iter() {
+			ids.append(&mut self.api.authenticated_clients(platform).await);
 		}
-		//self.api.reauthenticate(auth).await
 
-		Ok(())
+		Ok(ids)
 	}
 
 	/// Logs in to a platform
@@ -124,11 +132,34 @@ impl<StorageBackend: onlivfe::storage::OnlivfeStore> Onlivfe<StorageBackend> {
 	/// # Errors
 	///
 	/// If something failed with the login
-	pub async fn login(&self, login: LoginCredentials) -> Result<(), LoginError> {
+	pub async fn login(
+		&self, login: LoginCredentials,
+	) -> Result<PlatformAccountId, LoginError> {
 		let auth = self.api.login(login).await?;
 
+		let id = auth.id();
 		if let Err(e) = self.store.update_authentication(auth).await {
+			error!("Failed to update login authentication: {e}");
 			return Err(LoginError::Error(e.to_string()));
+		}
+
+		Ok(id)
+	}
+
+	/// Logs in to a platform from a previous authentication
+	///
+	/// # Errors
+	///
+	/// If the authentication session is not valid anymore or if something else
+	/// failed
+	pub async fn restore_login(
+		&self, login: Authentication,
+	) -> Result<(), String> {
+		let auth = self.api.reauthenticate(login).await?;
+
+		if let Err(e) = self.store.update_authentication(auth).await {
+			error!("Failed to update restored authentication: {e}");
+			return Err(e.to_string());
 		}
 
 		Ok(())
@@ -139,39 +170,136 @@ impl<StorageBackend: onlivfe::storage::OnlivfeStore> Onlivfe<StorageBackend> {
 	/// # Errors
 	///
 	/// If something failed with logging out
-	pub async fn logout(&self, id: &PlatformAccountId) -> Result<(), String> {
-		self.api.logout(id).await
+	pub async fn logout(&self, id: PlatformAccountId) -> Result<(), String> {
+		self.api.logout(&id).await?;
+
+		if let Err(e) = self.store.remove_authentication(id).await {
+			error!("Failed to remove stored authentication: {e}");
+			return Err(e.to_string());
+		}
+
+		Ok(())
 	}
 
-	/// Gets friends from a platform
+	/// Gets a friend of an account
 	///
 	/// # Errors
 	///
 	/// If something failed with retrieving the friends of the platform
-	pub async fn friends(&self) -> Result<Vec<PlatformAccount>, String> {
-		let _api = self.api.clone();
-		let _store = self.store.clone();
+	pub async fn friend(
+		&self, get_as: PlatformAccountId, friend_id: PlatformAccountId,
+	) -> Result<PlatformFriend, String> {
+		let store = self.store.clone();
 
-		// TODO: Check last retrieval date
-		/* tokio::spawn(async move {
-			// TODO: Proper parallel
-			for platform in PlatformType::iter() {
-				match api.friends(platform).await {
-					Ok(friends) => {
-						if let Err(e) = store.update_friends(friends).await {
-							error!("Failed to store fetched friend: {e}");
-						}
-					}
-					Err(e) => {
-						error!("Failed to fetch friends: {e}");
-						// TODO: Sending errors to wrapper consumer
-					}
-				};
-			}
-		});*/
+		let mut friend = store.friend(friend_id.clone()).await.ok();
 
-		let friends = self.store.accounts(512).await.map_err(|e| e.to_string())?;
+		let latest_updated_at = friend
+			.as_ref()
+			.map_or(time::OffsetDateTime::UNIX_EPOCH, |f| f.metadata().updated_at);
+
+		// Only update our data every minute at max
+		if latest_updated_at
+			< time::OffsetDateTime::now_utc() - time::Duration::MINUTE
+		{
+			let api = self.api.clone();
+			match api.friends(&get_as).await {
+				Ok(friends) => {
+					if let Some(friend_from_api) =
+						friends.iter().find(|friend| friend.id() == friend_id)
+					{
+						let mut found_friend = Some(friend_from_api.clone());
+						std::mem::swap(&mut found_friend, &mut friend);
+					}
+					if let Err(e) = store.update_friends(friends).await {
+						error!("Failed to store fetched friend: {e}");
+					}
+				}
+				Err(e) => {
+					error!("Failed to fetch friends: {e}");
+				}
+			};
+		}
+
+		friend.ok_or_else(|| "Friend not found".to_owned())
+	}
+
+	/// Gets friends of an account
+	///
+	/// # Errors
+	///
+	/// If something failed with retrieving the friends of the platform
+	pub async fn friends(
+		&self, id: &PlatformAccountId,
+	) -> Result<Vec<PlatformFriend>, String> {
+		let store = self.store.clone();
+
+		let mut friends =
+			self.store.friends(512).await.map_err(|e| e.to_string())?;
+		friends.sort_by_cached_key(|fren| fren.metadata().updated_at);
+
+		let latest_updated_at = friends
+			.last()
+			.map_or(time::OffsetDateTime::UNIX_EPOCH, |f| f.metadata().updated_at);
+
+		// Only update our data every minute at max
+		if latest_updated_at
+			< time::OffsetDateTime::now_utc() - time::Duration::MINUTE
+		{
+			let api = self.api.clone();
+			match api.friends(id).await {
+				Ok(friends) => {
+					if let Err(e) = store.update_friends(friends).await {
+						error!("Failed to store fetched friend: {e}");
+						return Err(e.to_string());
+					}
+				}
+				Err(e) => {
+					error!("Failed to fetch friends: {e}");
+					return Err(e);
+				}
+			};
+		}
 
 		Ok(friends)
+	}
+
+	/// Gets a platform account
+	///
+	/// # Errors
+	///
+	/// If something failed with retrieving the latform account
+	pub async fn platform_account(
+		&self, get_as: PlatformAccountId, account_id: PlatformAccountId,
+	) -> Result<PlatformAccount, String> {
+		let store = self.store.clone();
+
+		let mut platform_account = store.account(account_id.clone()).await.ok();
+
+		let latest_updated_at = platform_account
+			.as_ref()
+			.map_or(time::OffsetDateTime::UNIX_EPOCH, |acc| {
+				acc.metadata().updated_at
+			});
+
+		// Only update our data every minute at max
+		if latest_updated_at
+			< time::OffsetDateTime::now_utc() - time::Duration::MINUTE
+		{
+			let api = self.api.clone();
+			match api.platform_account(get_as, account_id).await {
+				Ok(account) => {
+					let mut found_account = Some(account.clone());
+					std::mem::swap(&mut found_account, &mut platform_account);
+					if let Err(e) = store.update_account(account).await {
+						error!("Failed to store fetched platform account: {e}");
+					}
+				}
+				Err(e) => {
+					error!("Failed to fetch platform account: {e}");
+				}
+			};
+		}
+
+		platform_account.ok_or_else(|| "Platform account not found".to_owned())
 	}
 }

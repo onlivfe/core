@@ -121,6 +121,18 @@ macro_rules! platform_enum {
 			NeosVR(crate::PlatformDataAndMetadata<$neos, neos::id::User>),
 		}
 		crate::platform_specific!($name);
+
+		impl $name {
+			/// Copies the platform metadata into a more generic format
+			#[must_use]
+			pub fn metadata(&self) -> crate::PlatformDataMetadata<crate::PlatformAccountId> {
+				match self {
+					Self::VRChat(v) => v.metadata.clone().into(),
+					Self::ChilloutVR(v)  => v.metadata.clone().into(),
+					Self::NeosVR(v)  => v.metadata.clone().into(),
+				}
+			}
+		}
 	};
 }
 pub(crate) use platform_enum;

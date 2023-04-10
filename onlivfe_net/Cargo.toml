@@ -25,6 +25,7 @@ path = "src/lib.rs"
 onlivfe = { workspace = true }
 tokio = { workspace = true }
 time = { workspace = true }
+strum = { workspace = true }
 tracing = { workspace = true }
 
 # Platform specifics

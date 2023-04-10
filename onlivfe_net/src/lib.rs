@@ -27,6 +27,7 @@ use onlivfe::{
 	Instance,
 	InstanceId,
 	LoginCredentials,
+	PlatformAccount,
 	PlatformAccountId,
 	PlatformDataAndMetadata,
 	PlatformFriend,
@@ -183,9 +184,9 @@ impl OnlivfeApiClient {
 	pub async fn friends(
 		&self,
 		// TODO: Change to enum with platform specific query configs
-		id: &PlatformAccountId,
+		get_as: &PlatformAccountId,
 	) -> Result<Vec<PlatformFriend>, String> {
-		match id {
+		match get_as {
 			PlatformAccountId::VRChat(id) => Ok(
 				self
 					.friends_vrchat(id)
@@ -235,23 +236,58 @@ impl OnlivfeApiClient {
 	/// If something failed with getting the instance
 	#[instrument]
 	pub async fn instance(
-		&self, id: PlatformAccountId, instance_id: InstanceId,
+		&self, get_as: PlatformAccountId, instance_id: InstanceId,
 	) -> Result<Instance, String> {
 		match instance_id {
 			InstanceId::VRChat(instance_id) => {
-				let PlatformAccountId::VRChat(id) = id else { return Err("Auth and platform types don't match!".to_owned()) };
-				let instance = self.instance_vrchat(&id, instance_id).await?;
-				Ok(Instance::VRChat(PlatformDataAndMetadata::new_now(instance, id)))
+				let PlatformAccountId::VRChat(get_as) = get_as else { return Err("Auth and platform types don't match!".to_owned()) };
+				let instance = self.instance_vrchat(&get_as, instance_id).await?;
+				Ok(Instance::VRChat(PlatformDataAndMetadata::new_now(instance, get_as)))
 			}
 			InstanceId::ChilloutVR(instance_id) => {
-				let PlatformAccountId::ChilloutVR(id) = id else { return Err("Auth and platform types don't match!".to_owned()) };
-				let instance = self.instance_chilloutvr(&id, instance_id).await?;
-				Ok(Instance::ChilloutVR(PlatformDataAndMetadata::new_now(instance, id)))
+				let PlatformAccountId::ChilloutVR(get_as) = get_as else { return Err("Auth and platform types don't match!".to_owned()) };
+				let instance = self.instance_chilloutvr(&get_as, instance_id).await?;
+				Ok(Instance::ChilloutVR(PlatformDataAndMetadata::new_now(instance, get_as)))
 			}
 			InstanceId::NeosVR(instance_id) => {
-				let PlatformAccountId::NeosVR(id) = id else { return Err("Auth and platform types don't match!".to_owned()) };
-				let instance = self.instance_neosvr(&id, instance_id).await?;
-				Ok(Instance::NeosVR(PlatformDataAndMetadata::new_now(instance, id)))
+				let PlatformAccountId::NeosVR(get_as) = get_as else { return Err("Auth and platform types don't match!".to_owned()) };
+				let instance = self.instance_neosvr(&get_as, instance_id).await?;
+				Ok(Instance::NeosVR(PlatformDataAndMetadata::new_now(instance, get_as)))
+			}
+		}
+	}
+
+	/// Retrieves details about an instance from the platform
+	///
+	/// # Errors
+	///
+	/// If something failed with getting the instance
+	#[instrument]
+	pub async fn platform_account(
+		&self, get_as: PlatformAccountId, account_id: PlatformAccountId,
+	) -> Result<PlatformAccount, String> {
+		match account_id {
+			PlatformAccountId::VRChat(account_id) => {
+				let PlatformAccountId::VRChat(get_as) = get_as else { return Err("Auth and platform types don't match!".to_owned()) };
+				let account = self.user_vrchat(&get_as, account_id).await?;
+				Ok(PlatformAccount::VRChat(PlatformDataAndMetadata::new_now(
+					Box::new(account),
+					get_as,
+				)))
+			}
+			PlatformAccountId::ChilloutVR(account_id) => {
+				let PlatformAccountId::ChilloutVR(get_as) = get_as else { return Err("Auth and platform types don't match!".to_owned()) };
+				let account =
+					self.user_chilloutvr(&get_as, account_id).await?;
+				Ok(PlatformAccount::ChilloutVR(PlatformDataAndMetadata::new_now(
+					Box::new(account),
+					get_as,
+				)))
+			}
+			PlatformAccountId::NeosVR(account_id) => {
+				let PlatformAccountId::NeosVR(get_as) = get_as else { return Err("Auth and platform types don't match!".to_owned()) };
+				let account = self.user_neosvr(&get_as, account_id).await?;
+				Ok(PlatformAccount::NeosVR(PlatformDataAndMetadata::new_now(Box::new(account), get_as)))
 			}
 		}
 	}

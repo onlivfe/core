@@ -1,7 +1,7 @@
 use neos::{
 	api_client::{ApiClient, AuthenticatedNeos, UnauthenticatedNeos},
 	id,
-	model::{Friend, SessionInfo, UserSession},
+	model::{Friend, SessionInfo, User, UserSession},
 	query::{self, Authentication, LoginCredentialsIdentifier},
 };
 
@@ -41,9 +41,27 @@ impl OnlivfeApiClient {
 		let session = api
 			.query(query)
 			.await
-			.map_err(|_| "NeoR instance query failed".to_owned())?;
+			.map_err(|_| "Neos instance query failed".to_owned())?;
 
 		Ok(session)
+	}
+
+	#[instrument]
+	pub(crate) async fn user_neosvr(
+		&self, get_as: &id::User, user_id: id::User,
+	) -> Result<User, String> {
+		trace!("Fetching user {:?} as {:?}", user_id, get_as);
+		let rw_lock_guard = self.neos.read().await;
+		let api = rw_lock_guard
+			.get(get_as)
+			.ok_or_else(|| "Neos API not authenticated".to_owned())?;
+		let query = query::UserInfo::new(user_id);
+		let user = api
+			.query(query)
+			.await
+			.map_err(|_| "Neos user query failed".to_owned())?;
+
+		Ok(user)
 	}
 
 	#[instrument]

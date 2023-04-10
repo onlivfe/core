@@ -193,4 +193,10 @@ impl OnlivfeStore for OnlivfeDatabaseStorageBackend {
 	) -> Result<bool, Self::Err> {
 		todo!();
 	}
+
+	async fn remove_authentication(
+		&self, _id: PlatformAccountId,
+	) -> Result<bool, Self::Err> {
+		todo!();
+	}
 }

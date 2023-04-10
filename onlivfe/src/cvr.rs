@@ -12,3 +12,11 @@ impl From<&chilloutvr::id::User> for super::PlatformType {
 impl From<chilloutvr::id::User> for super::PlatformType {
 	fn from(id: chilloutvr::id::User) -> Self { Self::from(&id) }
 }
+
+impl From<super::PlatformDataMetadata<chilloutvr::id::User>>
+	for super::PlatformDataMetadata<super::PlatformAccountId>
+{
+	fn from(value: super::PlatformDataMetadata<chilloutvr::id::User>) -> Self {
+		Self { updated_at: value.updated_at, updated_by: value.updated_by.into() }
+	}
+}

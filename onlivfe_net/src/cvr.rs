@@ -1,7 +1,7 @@
 use chilloutvr::{
 	api_client::{ApiClient, UnauthenticatedCVR},
 	id,
-	model::{ExtendedInstanceDetails, Friend},
+	model::{ExtendedInstanceDetails, Friend, UserDetails},
 	query::{self, AuthType, SavedLoginCredentials},
 };
 
@@ -45,6 +45,22 @@ impl OnlivfeApiClient {
 			.map_err(|_| "CVR instance query failed".to_owned())?;
 
 		Ok(instance_resp.data)
+	}
+
+	#[instrument]
+	pub(crate) async fn user_chilloutvr(
+		&self, get_as: &id::User, user_id: id::User,
+	) -> Result<UserDetails, String> {
+		trace!("Fetching CVR user {:?} as {:?}", user_id, get_as);
+		let rw_lock_guard = self.cvr.read().await;
+		let api = rw_lock_guard
+			.get(get_as)
+			.ok_or_else(|| "CVR API not authenticated".to_owned())?;
+		let query = query::UserDetails { user_id };
+		let user_resp =
+			api.query(query).await.map_err(|_| "CVR user query failed".to_owned())?;
+
+		Ok(user_resp.data)
 	}
 
 	#[instrument]
