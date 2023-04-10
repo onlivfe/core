@@ -45,7 +45,7 @@ pub use assets::*;
 	Deserialize,
 	PartialEq,
 	Eq,
-	Hash,
+	Hash
 )]
 pub enum PlatformType {
 	/// It's VRC
@@ -102,6 +102,18 @@ macro_rules! platform_id {
 			NeosVR($neos),
 		}
 		crate::platform_specific!($name);
+
+		impl $name {
+			/// Gets the string representation of the internal platform specific ID
+			#[must_use]
+			pub fn id_as_string(&self) -> String {
+				match self {
+					Self::VRChat(v) => v.to_string(),
+					Self::ChilloutVR(v) => v.to_string(),
+					Self::NeosVR(v) => v.as_ref().to_string(),
+				}
+			}
+		}
 	};
 }
 pub(crate) use platform_id;
