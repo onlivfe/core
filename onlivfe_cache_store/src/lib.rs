@@ -16,7 +16,26 @@
 #![allow(clippy::multiple_crate_versions)]
 // The warnings are a bit too aggressive
 #![allow(clippy::significant_drop_tightening)]
-#![feature(drain_filter)]
+
+// Pain, https://github.com/rust-lang/rust/issues/43244
+/// Drains items from the slice if they match the condition,
+/// returns the drained items
+fn drain_vec<I, F>(slice: &mut Vec<I>, cond: F) -> Vec<I>
+where
+	F: Fn(&I) -> bool,
+{
+	let mut removed = vec![];
+	let mut i = 0;
+	while i < slice.len() {
+		if cond(&mut slice[i]) {
+			removed.push(slice.remove(i));
+		} else {
+			i += 1;
+		}
+	}
+
+	removed
+}
 
 use directories::ProjectDirs;
 use onlivfe::{
@@ -161,11 +180,12 @@ impl OnlivfeStore for OnlivfeCacheStorageBackend {
 		&self, account_id: PlatformAccountId, profile_ids: Vec<ProfileId>,
 	) -> Result<(), Self::Err> {
 		let mut profiles_to_accounts = self.profiles_to_accounts.write().await;
-		let removed_profile_ids = profiles_to_accounts
-			.drain_filter(|(acc_id, _)| acc_id == &account_id)
-			.filter(|(_, prof_id)| profile_ids.contains(prof_id))
-			.map(|(_, prof_id)| prof_id)
-			.collect::<Vec<ProfileId>>();
+		let removed_profile_ids =
+			drain_vec(&mut profiles_to_accounts, |(acc_id, _)| acc_id == &account_id)
+				.into_iter()
+				.filter(|(_, prof_id)| profile_ids.contains(prof_id))
+				.map(|(_, prof_id)| prof_id)
+				.collect::<Vec<ProfileId>>();
 		for profile_id in profile_ids {
 			profiles_to_accounts.push((account_id.clone(), profile_id));
 		}
@@ -342,8 +362,11 @@ impl OnlivfeStore for OnlivfeCacheStorageBackend {
 		&self, profile_id: ProfileId, account_ids: Vec<PlatformAccountId>,
 	) -> Result<(), Self::Err> {
 		let mut profiles_to_accounts = self.profiles_to_accounts.write().await;
-		let removed_account_ids = profiles_to_accounts
-			.drain_filter(|(_, prof_id)| prof_id == &profile_id)
+		let removed_account_ids =
+			drain_vec(&mut profiles_to_accounts, |(_, prof_id)| {
+				prof_id == &profile_id
+			})
+			.into_iter()
 			.filter(|(acc_id, _)| account_ids.contains(acc_id))
 			.map(|(acc_id, _)| acc_id)
 			.collect::<Vec<PlatformAccountId>>();
@@ -415,8 +438,11 @@ impl OnlivfeStore for OnlivfeCacheStorageBackend {
 		&self, profile_id: ProfileId,
 	) -> Result<(), Self::Err> {
 		let mut profiles_to_accounts = self.profiles_to_accounts.write().await;
-		let removed_account_ids = profiles_to_accounts
-			.drain_filter(|(_, prof_id)| prof_id == &profile_id)
+		let removed_account_ids =
+			drain_vec(&mut profiles_to_accounts, |(_, prof_id)| {
+				prof_id == &profile_id
+			})
+			.into_iter()
 			.map(|(acc_id, _)| acc_id)
 			.collect::<Vec<PlatformAccountId>>();
 
