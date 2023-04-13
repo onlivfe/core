@@ -45,7 +45,7 @@ pub use assets::*;
 	Deserialize,
 	PartialEq,
 	Eq,
-	Hash
+	Hash,
 )]
 pub enum PlatformType {
 	/// It's VRC

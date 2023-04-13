@@ -21,3 +21,5 @@ logout
 WebAssembly
 AGPL
 startup
+tuple
+timestamp

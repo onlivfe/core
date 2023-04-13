@@ -14,6 +14,8 @@
 #![allow(clippy::tabs_in_doc_comments)]
 // Not much can be done about it :/
 #![allow(clippy::multiple_crate_versions)]
+// The warnings are a bit too aggressive
+#![allow(clippy::significant_drop_tightening)]
 
 #[macro_use]
 extern crate tracing;
@@ -247,7 +249,9 @@ impl OnlivfeApiClient {
 			InstanceId::ChilloutVR(instance_id) => {
 				let PlatformAccountId::ChilloutVR(get_as) = get_as else { return Err("Auth and platform types don't match!".to_owned()) };
 				let instance = self.instance_chilloutvr(&get_as, instance_id).await?;
-				Ok(Instance::ChilloutVR(PlatformDataAndMetadata::new_now(instance, get_as)))
+				Ok(Instance::ChilloutVR(PlatformDataAndMetadata::new_now(
+					instance, get_as,
+				)))
 			}
 			InstanceId::NeosVR(instance_id) => {
 				let PlatformAccountId::NeosVR(get_as) = get_as else { return Err("Auth and platform types don't match!".to_owned()) };
@@ -277,8 +281,7 @@ impl OnlivfeApiClient {
 			}
 			PlatformAccountId::ChilloutVR(account_id) => {
 				let PlatformAccountId::ChilloutVR(get_as) = get_as else { return Err("Auth and platform types don't match!".to_owned()) };
-				let account =
-					self.user_chilloutvr(&get_as, account_id).await?;
+				let account = self.user_chilloutvr(&get_as, account_id).await?;
 				Ok(PlatformAccount::ChilloutVR(PlatformDataAndMetadata::new_now(
 					Box::new(account),
 					get_as,
@@ -287,7 +290,10 @@ impl OnlivfeApiClient {
 			PlatformAccountId::NeosVR(account_id) => {
 				let PlatformAccountId::NeosVR(get_as) = get_as else { return Err("Auth and platform types don't match!".to_owned()) };
 				let account = self.user_neosvr(&get_as, account_id).await?;
-				Ok(PlatformAccount::NeosVR(PlatformDataAndMetadata::new_now(Box::new(account), get_as)))
+				Ok(PlatformAccount::NeosVR(PlatformDataAndMetadata::new_now(
+					Box::new(account),
+					get_as,
+				)))
 			}
 		}
 	}

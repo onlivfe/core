@@ -1,5 +1,5 @@
 use chilloutvr::{
-	api_client::{ApiClient, UnauthenticatedCVR},
+	api_client::{ApiClient, ApiConfiguration, UnauthenticatedCVR},
 	id,
 	model::{ExtendedInstanceDetails, Friend, UserDetails},
 	query::{self, AuthType, SavedLoginCredentials},
@@ -85,10 +85,12 @@ impl OnlivfeApiClient {
 	pub(crate) async fn login_chilloutvr(
 		&self, auth: query::LoginCredentials,
 	) -> Result<(id::User, chilloutvr::query::SavedLoginCredentials), String> {
-		let api =
-			UnauthenticatedCVR::new(self.user_agent.clone()).map_err(|_| {
-				"Internal error, CVR API client creation failed".to_string()
-			})?;
+		let mut api_config = ApiConfiguration::new(self.user_agent.clone());
+		// TODO: Add a configuration option
+		api_config.mature_content_enabled = true;
+		let api = UnauthenticatedCVR::new(api_config).map_err(|_| {
+			"Internal error, CVR API client creation failed".to_string()
+		})?;
 
 		let user_auth = api
 			.query(AuthType::LoginProfile(auth))

@@ -14,6 +14,8 @@
 #![allow(clippy::tabs_in_doc_comments)]
 // Not much can be done about it :/
 #![allow(clippy::multiple_crate_versions)]
+// The warnings are a bit too aggressive
+#![allow(clippy::significant_drop_tightening)]
 
 use directories::ProjectDirs;
 use onlivfe::{
