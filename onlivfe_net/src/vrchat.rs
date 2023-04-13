@@ -3,7 +3,7 @@ use vrc::{
 	api_client::{ApiClient, AuthenticatedVRC},
 	id,
 	model::Instance,
-	model::{AnyUser, Friend},
+	model::{AnyUser, CurrentAccount, Friend},
 	query::{self, Logout},
 };
 
@@ -50,11 +50,30 @@ impl OnlivfeApiClient {
 	#[instrument]
 	pub(crate) async fn reauthenticate_vrchat(
 		&self, id: &id::User, auth: query::Authentication,
-	) -> Result<(id::User, query::Authentication), String> {
+	) -> Result<CurrentAccount, String> {
 		trace!("Reauthentcating as {:?}", id);
-		let rw_lock_guard = self.vrc.read().await;
-		let _api = rw_lock_guard.get(id);
-		Err("Not implemented!".to_string())
+		let mut rw_lock_guard = self.vrc.write().await;
+
+		// We're keeping the lock for this whole function anyways
+		#[allow(clippy::significant_drop_in_scrutinee)]
+		let api = match rw_lock_guard.remove(id) {
+			None => AuthenticatedVRC::new(self.user_agent.clone(), auth),
+			Some(VRChatClientState::Authenticated(api)) => api.recreate(auth),
+			Some(VRChatClientState::Authenticating(api)) => api.0.recreate(auth),
+		}
+		.map_err(|_| {
+			"Internal error, Neos API client creation failed".to_string()
+		})?;
+
+		let current_user: CurrentAccount =
+			api
+				.query(query::GetCurrentUser)
+				.await
+				.map_err(|_| "Reauthentication failed".to_owned())?;
+
+		rw_lock_guard.insert(id.clone(), VRChatClientState::Authenticated(api));
+
+		Ok(current_user)
 	}
 
 	#[instrument]

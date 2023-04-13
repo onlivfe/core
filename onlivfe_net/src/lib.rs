@@ -35,6 +35,7 @@ use onlivfe::{
 	PlatformFriend,
 	PlatformType,
 };
+use time::OffsetDateTime;
 use tokio::sync::RwLock;
 use vrchat::VRChatClientState;
 
@@ -159,8 +160,10 @@ impl OnlivfeApiClient {
 				))
 			}
 			LoginCredentials::ChilloutVR(auth) => {
-				let (user_id, auth) =
-					self.login_chilloutvr(*auth).await.map_err(LoginError::Error)?;
+				let (user_id, auth) = self
+					.login_chilloutvr(None, *auth)
+					.await
+					.map_err(LoginError::Error)?;
 				Authentication::ChilloutVR(PlatformDataAndMetadata::new_now(
 					Box::new(auth),
 					user_id,
@@ -309,17 +312,17 @@ impl OnlivfeApiClient {
 	) -> Result<Authentication, String> {
 		match auth {
 			Authentication::VRChat(auth) => {
-				let (id, new_auth) = self
-					.reauthenticate_vrchat(&auth.metadata.updated_by, *auth.data)
+				let current_account = self
+					.reauthenticate_vrchat(&auth.metadata.updated_by, *auth.data.clone())
 					.await?;
 				Ok(Authentication::VRChat(PlatformDataAndMetadata::new_now(
-					Box::new(new_auth),
-					id,
+					Box::new(*auth.data),
+					current_account.base.id,
 				)))
 			}
 			Authentication::ChilloutVR(auth) => {
 				let (id, new_auth) = self
-					.reauthenticate_chilloutvr(&auth.metadata.updated_by, *auth.data)
+					.login_chilloutvr(Some(auth.metadata.updated_by), *auth.data)
 					.await?;
 				Ok(Authentication::ChilloutVR(PlatformDataAndMetadata::new_now(
 					Box::new(new_auth),
@@ -327,9 +330,8 @@ impl OnlivfeApiClient {
 				)))
 			}
 			Authentication::NeosVR(mut auth) => {
-				let user_session =
-					self.reauthenticate_neosvr((*auth.data).clone()).await?;
-				auth.metadata.updated_at = user_session.timestamp;
+				self.reauthenticate_neosvr((*auth.data).clone()).await?;
+				auth.metadata.updated_at = OffsetDateTime::now_utc();
 				Ok(Authentication::NeosVR(auth))
 			}
 		}

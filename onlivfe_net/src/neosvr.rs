@@ -1,7 +1,7 @@
 use neos::{
 	api_client::{ApiClient, AuthenticatedNeos, UnauthenticatedNeos},
 	id,
-	model::{Friend, SessionInfo, User, UserSession},
+	model::{Friend, SessionInfo, User},
 	query::{self, Authentication, LoginCredentialsIdentifier},
 };
 
@@ -10,8 +10,12 @@ use crate::OnlivfeApiClient;
 impl OnlivfeApiClient {
 	#[instrument]
 	pub(crate) async fn logout_neos(&self, id: &id::User) -> Result<(), String> {
-		if let Some(_client) = self.neos.write().await.remove(id) {
-			return Err("Logout query not implemented yet".to_string());
+		if let Some(client) = self.neos.write().await.remove(id) {
+			client.query(query::DestroyUserSession).await.map_err(|e| {
+				error!("Logout as {:?} failed: {:?}", id, e);
+				"Logout request failed, removing account anyway".to_string()
+			})?;
+			return Ok(());
 		}
 		warn!("Tried to log out of non-existent account {:?}", id);
 		Ok(())
@@ -21,11 +25,57 @@ impl OnlivfeApiClient {
 	#[instrument]
 	pub(crate) async fn reauthenticate_neosvr(
 		&self, auth: Authentication,
-	) -> Result<UserSession, String> {
+	) -> Result<(), String> {
 		trace!("Reauthentcating as {:?}", &auth.user_id);
+		if let Some(api) = self.neos.read().await.get(&auth.user_id) {
+			warn!(
+				"Already had authenticated client for reauthentication as {:?}",
+				auth.user_id
+			);
+			api.query(query::ExtendUserSession).await.map_err(|e| {
+				error!(
+					"Reauthentication via user session extension check as {:?} failed: {:?}",
+					auth.user_id, e
+				);
+				"Reauthentication failed".to_owned()
+			})?;
+		} else {
+			let id = auth.user_id.clone();
+			let mut rw_lock_guard = self.neos.write().await;
+			let api =
+				AuthenticatedNeos::new(self.user_agent.clone(), auth).map_err(|e| {
+					error!("Creating Neos API client as {id:?} failed: {e:?}");
+					"Internal error, Neos API client creation failed".to_string()
+				})?;
+
+			api.query(query::ExtendUserSession).await.map_err(|e| {
+				error!(
+					"Reauthentication via user session extension check as {:?} failed: {:?}",
+					&id, e
+				);
+				"Reauthentication failed".to_owned()
+			})?;
+
+			rw_lock_guard.insert(id, api);
+		}
+
+		Ok(())
+	}
+
+	#[instrument]
+	pub(crate) async fn extend_auth_neosvr(
+		&self, id: &id::User,
+	) -> Result<(), String> {
 		let rw_lock_guard = self.neos.read().await;
-		let _api = rw_lock_guard.get(&auth.user_id);
-		Err("Not implemented!".to_string())
+		let api = rw_lock_guard
+			.get(id)
+			.ok_or_else(|| "Neos API not authenticated".to_owned())?;
+		api.query(query::ExtendUserSession).await.map_err(|e| {
+			error!("User session extension as {:?} failed: {:?}", id, e);
+			"User session extension failed".to_owned()
+		})?;
+
+		Ok(())
 	}
 
 	#[instrument]
