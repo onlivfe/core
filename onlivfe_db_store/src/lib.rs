@@ -102,6 +102,12 @@ impl OnlivfeStore for OnlivfeDatabaseStorageBackend {
 		todo!();
 	}
 
+	async fn update_account_profile_ids(
+		&self, _account_id: PlatformAccountId, _profile_ids: Vec<ProfileId>,
+	) -> Result<(), Self::Err> {
+		todo!();
+	}
+
 	async fn update_account(
 		&self, _account: PlatformAccount,
 	) -> Result<bool, Self::Err> {
@@ -180,7 +186,19 @@ impl OnlivfeStore for OnlivfeDatabaseStorageBackend {
 		todo!();
 	}
 
+	async fn update_profile_account_ids(
+		&self, _profile_id: ProfileId, _account_ids: Vec<PlatformAccountId>,
+	) -> Result<(), Self::Err> {
+		todo!();
+	}
+
 	async fn update_profile(&self, _profile: Profile) -> Result<bool, Self::Err> {
+		todo!();
+	}
+
+	async fn delete_profile(
+		&self, _profile_id: ProfileId,
+	) -> Result<(), Self::Err> {
 		todo!();
 	}
 

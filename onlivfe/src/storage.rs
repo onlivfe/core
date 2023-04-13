@@ -48,6 +48,10 @@ pub trait OnlivfeStore: Send + Sync + std::fmt::Debug {
 	async fn account_profile_ids(
 		&self, account_id: PlatformAccountId,
 	) -> Result<Vec<ProfileId>, Self::Err>;
+	/// Updates the profile IDs for an account
+	async fn update_account_profile_ids(
+		&self, account_id: PlatformAccountId, profile_ids: Vec<ProfileId>,
+	) -> Result<(), Self::Err>;
 	/// Update or store a new platform account,
 	/// returning if an existing one was updated
 	async fn update_account(
@@ -254,6 +258,10 @@ pub trait OnlivfeStore: Send + Sync + std::fmt::Debug {
 	async fn profile_account_ids(
 		&self, profile_id: ProfileId,
 	) -> Result<Vec<PlatformAccountId>, Self::Err>;
+	/// Updates the account IDs for a profile
+	async fn update_profile_account_ids(
+		&self, profile_id: ProfileId, account_ids: Vec<PlatformAccountId>,
+	) -> Result<(), Self::Err>;
 	/// Update or store a new profile,
 	/// returning if an existing one was updated
 	async fn update_profile(&self, profile: Profile) -> Result<bool, Self::Err>;
@@ -273,6 +281,10 @@ pub trait OnlivfeStore: Send + Sync + std::fmt::Debug {
 
 		Ok(ids)
 	}
+	/// Deletes a profile
+	async fn delete_profile(
+		&self, profile_id: ProfileId,
+	) -> Result<(), Self::Err>;
 	/// Retrieves the accounts for a profile
 	async fn profile_accounts(
 		&self, profile_id: ProfileId,

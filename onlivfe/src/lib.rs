@@ -170,13 +170,19 @@ pub(crate) use platform_enum_id;
 /// An ID of a profile
 pub struct ProfileId(uuid::Uuid);
 
+impl ProfileId {
+	/// Creates a new profile ID
+	#[must_use]
+	// New and default have slightly different semantics, as the new will be
+	// different each time unlike what would assume for default.
+	#[allow(clippy::new_without_default)]
+	pub fn new() -> Self { Self(uuid::Uuid::new_v4()) }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 /// A profile of "this is someone".
 pub struct Profile {
-	#[serde(skip)]
-	/// Only used in internal DB joins of data
-	pub primary_key: u32,
 	/// Used for mapping/importing/exporting profiles
 	pub sharing_id: ProfileId,
 	/// Nickname of the peep
@@ -185,6 +191,22 @@ pub struct Profile {
 	pub notes: Option<String>,
 	/// A custom profile picture about the peep
 	pub pfp_url: Option<String>,
+}
+
+impl Profile {
+	/// Creates a new profile ID
+	#[must_use]
+	// New and default have slightly different semantics, as the new will be
+	// different each time unlike what would assume for default.
+	#[allow(clippy::new_without_default)]
+	pub fn new() -> Self {
+		Self {
+			sharing_id: ProfileId::new(),
+			nick: None,
+			notes: None,
+			pfp_url: None,
+		}
+	}
 }
 
 /// Metadata about the data from a platform

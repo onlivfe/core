@@ -16,6 +16,7 @@
 #![allow(clippy::multiple_crate_versions)]
 // The warnings are a bit too aggressive
 #![allow(clippy::significant_drop_tightening)]
+#![feature(drain_filter)]
 
 use directories::ProjectDirs;
 use onlivfe::{
@@ -81,7 +82,7 @@ impl OnlivfeCacheStorageBackend {
 			vec![]
 		};
 
-		let profiles_to_accounts = dirs.config_dir().join("profiles.bson");
+		let profiles_to_accounts = dirs.config_dir().join("mappings.bson");
 		let profiles_to_accounts: Vec<(PlatformAccountId, ProfileId)> =
 			if profiles_to_accounts.exists() {
 				let profiles_to_accounts = std::fs::File::open(profiles_to_accounts)
@@ -104,6 +105,20 @@ impl OnlivfeCacheStorageBackend {
 		};
 
 		Ok(store)
+	}
+
+	fn update_mappings(
+		&self, mappings: &Vec<(PlatformAccountId, ProfileId)>,
+	) -> Result<(), std::io::Error> {
+		let write_result = bson::to_vec(mappings).map(|bytes| {
+			std::fs::write(self.dirs.config_dir().join("mappings.bson"), bytes)
+		});
+
+		match write_result {
+			Ok(Ok(_)) => Ok(()),
+			Ok(Err(e)) => Err(e),
+			Err(e) => Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, e)),
+		}
 	}
 }
 
@@ -140,6 +155,29 @@ impl OnlivfeStore for OnlivfeCacheStorageBackend {
 			.map(|map| map.1.clone())
 			.collect();
 		Ok(profile_ids)
+	}
+
+	async fn update_account_profile_ids(
+		&self, account_id: PlatformAccountId, profile_ids: Vec<ProfileId>,
+	) -> Result<(), Self::Err> {
+		let mut profiles_to_accounts = self.profiles_to_accounts.write().await;
+		let removed_profile_ids = profiles_to_accounts
+			.drain_filter(|(acc_id, _)| acc_id == &account_id)
+			.filter(|(_, prof_id)| profile_ids.contains(prof_id))
+			.map(|(_, prof_id)| prof_id)
+			.collect::<Vec<ProfileId>>();
+		for profile_id in profile_ids {
+			profiles_to_accounts.push((account_id.clone(), profile_id));
+		}
+
+		if let Err(e) = self.update_mappings(&profiles_to_accounts) {
+			for profile_id in removed_profile_ids {
+				profiles_to_accounts.push((account_id.clone(), profile_id));
+			}
+			return Err(e);
+		}
+
+		Ok(())
 	}
 
 	async fn update_account(
@@ -300,6 +338,29 @@ impl OnlivfeStore for OnlivfeCacheStorageBackend {
 		Ok(platform_account_ids)
 	}
 
+	async fn update_profile_account_ids(
+		&self, profile_id: ProfileId, account_ids: Vec<PlatformAccountId>,
+	) -> Result<(), Self::Err> {
+		let mut profiles_to_accounts = self.profiles_to_accounts.write().await;
+		let removed_account_ids = profiles_to_accounts
+			.drain_filter(|(_, prof_id)| prof_id == &profile_id)
+			.filter(|(acc_id, _)| account_ids.contains(acc_id))
+			.map(|(acc_id, _)| acc_id)
+			.collect::<Vec<PlatformAccountId>>();
+		for account_id in account_ids {
+			profiles_to_accounts.push((account_id, profile_id.clone()));
+		}
+
+		if let Err(e) = self.update_mappings(&profiles_to_accounts) {
+			for account_id in removed_account_ids {
+				profiles_to_accounts.push((account_id, profile_id.clone()));
+			}
+			return Err(e);
+		}
+
+		Ok(())
+	}
+
 	async fn update_profile(
 		&self, mut profile: Profile,
 	) -> Result<bool, Self::Err> {
@@ -348,6 +409,25 @@ impl OnlivfeStore for OnlivfeCacheStorageBackend {
 		}
 
 		Ok(swapped)
+	}
+
+	async fn delete_profile(
+		&self, profile_id: ProfileId,
+	) -> Result<(), Self::Err> {
+		let mut profiles_to_accounts = self.profiles_to_accounts.write().await;
+		let removed_account_ids = profiles_to_accounts
+			.drain_filter(|(_, prof_id)| prof_id == &profile_id)
+			.map(|(acc_id, _)| acc_id)
+			.collect::<Vec<PlatformAccountId>>();
+
+		if let Err(e) = self.update_mappings(&profiles_to_accounts) {
+			for account_id in removed_account_ids {
+				profiles_to_accounts.push((account_id, profile_id.clone()));
+			}
+			return Err(e);
+		}
+
+		Ok(())
 	}
 
 	async fn authentications(&self) -> Result<Vec<Authentication>, Self::Err> {

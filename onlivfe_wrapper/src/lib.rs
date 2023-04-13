@@ -29,6 +29,8 @@ use onlivfe::{
 	PlatformAccountId,
 	PlatformFriend,
 	PlatformType,
+	Profile,
+	ProfileId,
 };
 use onlivfe_net::LoginError;
 use strum::IntoEnumIterator;
@@ -304,6 +306,136 @@ impl<StorageBackend: onlivfe::storage::OnlivfeStore> Onlivfe<StorageBackend> {
 		}
 
 		platform_account.ok_or_else(|| "Platform account not found".to_owned())
+	}
+
+	/// Gets a platform account's profiles
+	///
+	/// # Errors
+	///
+	/// If something failed with retrieving the profiles
+	pub async fn profiles(
+		&self, account_id: PlatformAccountId,
+	) -> Result<Vec<Profile>, String> {
+		let profiles =
+			self.store.account_profiles(account_id.clone()).await.map_err(|e| {
+				error!(
+					"Failed to get account {account_id:?} profiles from storage: {e:?}"
+				);
+				"Failed to retrieve account profiles".to_string()
+			})?;
+
+		Ok(profiles)
+	}
+
+	/// Updates a profile, returning a bool indicating if an existing one was
+	/// updated, which gives false the meaning of the profile was now created.
+	///
+	/// # Errors
+	///
+	/// If something failed with updating the profile
+	pub async fn update_profile(&self, profile: Profile) -> Result<bool, String> {
+		let id = profile.sharing_id.clone();
+		let was_new = self.store.update_profile(profile).await.map_err(|e| {
+			error!("Failed to update profile {id:?}: {e:?}");
+			"Failed to update profile".to_string()
+		})?;
+
+		Ok(was_new)
+	}
+
+	/// Gets the profile's mapped accounts
+	///
+	/// # Errors
+	///
+	/// If something failed with getting the mappings
+	pub async fn profile_accounts(
+		&self, profile_id: ProfileId,
+	) -> Result<Vec<PlatformAccountId>, String> {
+		let id = profile_id.clone();
+		let account_ids =
+			self.store.profile_account_ids(profile_id).await.map_err(|e| {
+				error!("Failed to get profile {id:?} account mappings {e:?}");
+				"Failed to get profile account mappings".to_string()
+			})?;
+
+		Ok(account_ids)
+	}
+
+	/// Updates the profile's mapped accounts
+	///
+	/// # Errors
+	///
+	/// If something failed with updating the mappings
+	pub async fn update_profile_accounts(
+		&self, profile_id: ProfileId, account_ids: Vec<PlatformAccountId>,
+	) -> Result<(), String> {
+		let id = profile_id.clone();
+		self
+			.store
+			.update_profile_account_ids(profile_id, account_ids)
+			.await
+			.map_err(|e| {
+				error!("Failed to update profile {id:?} account mappings {e:?}");
+				"Failed to update profile account mappings".to_string()
+			})?;
+
+		Ok(())
+	}
+
+	/// Gets the accounts's mapped profiles
+	///
+	/// # Errors
+	///
+	/// If something failed with getting the mappings
+	pub async fn account_profiles(
+		&self, account_id: PlatformAccountId,
+	) -> Result<Vec<ProfileId>, String> {
+		let id = account_id.clone();
+		let profile_ids =
+			self.store.account_profile_ids(account_id).await.map_err(|e| {
+				error!("Failed to get account {id:?} profile mappings {e:?}");
+				"Failed to get account profile mappings".to_string()
+			})?;
+
+		Ok(profile_ids)
+	}
+
+	/// Updates the profile's mapped accounts
+	///
+	/// # Errors
+	///
+	/// If something failed with updating the mappings
+	pub async fn update_account_profiles(
+		&self, account_id: PlatformAccountId, profile_ids: Vec<ProfileId>,
+	) -> Result<(), String> {
+		let id = account_id.clone();
+		self
+			.store
+			.update_account_profile_ids(account_id, profile_ids)
+			.await
+			.map_err(|e| {
+				error!("Failed to update account {id:?} profile mappings {e:?}");
+				"Failed to update account profile mappings".to_string()
+			})?;
+
+		Ok(())
+	}
+
+	/// Removes a profile fully.
+	///
+	/// # Errors
+	///
+	/// If something failed with updating the profile
+	pub async fn delete_profile(
+		&self, profile_id: ProfileId,
+	) -> Result<(), String> {
+		let id = profile_id.clone();
+		self.store.delete_profile(profile_id).await.map_err(|e| {
+			error!("Failed to delete profile {id:?}: {e:?}");
+			"Failed to update profile".to_string()
+		})?;
+
+		Ok(())
 	}
 
 	/// Gets details about an instance
