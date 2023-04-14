@@ -1,5 +1,15 @@
 use crate::PlatformAccountId;
 
+/// An error that occurred with the login
+#[derive(Debug, Clone)]
+pub enum LoginError {
+	/// An error occurred
+	Error(String),
+	/// The authentication was partially successful, but requires additional
+	/// verification
+	RequiresAdditionalFactor(PlatformAccountId),
+}
+
 crate::platform_enum!(
 	/// Credentials for a platform
 	Authentication {

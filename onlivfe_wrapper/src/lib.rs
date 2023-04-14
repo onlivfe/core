@@ -25,6 +25,7 @@ use onlivfe::{
 	Instance,
 	InstanceId,
 	LoginCredentials,
+	LoginError,
 	PlatformAccount,
 	PlatformAccountId,
 	PlatformFriend,
@@ -32,7 +33,6 @@ use onlivfe::{
 	Profile,
 	ProfileId,
 };
-use onlivfe_net::LoginError;
 use strum::IntoEnumIterator;
 
 /// Initializes some static global parts of the core, setting up logging &

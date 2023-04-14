@@ -29,6 +29,7 @@ use onlivfe::{
 	Instance,
 	InstanceId,
 	LoginCredentials,
+	LoginError,
 	PlatformAccount,
 	PlatformAccountId,
 	PlatformDataAndMetadata,
@@ -42,16 +43,6 @@ use vrchat::VRChatClientState;
 mod cvr;
 mod neosvr;
 mod vrchat;
-
-/// An error that occurred with the login
-#[derive(Debug, Clone)]
-pub enum LoginError {
-	/// An error occurred
-	Error(String),
-	/// The authentication was partially successful, but requires additional
-	/// verification
-	RequiresAdditionalFactor(PlatformAccountId),
-}
 
 /// An unified API client interface for the different platforms
 pub struct OnlivfeApiClient {
