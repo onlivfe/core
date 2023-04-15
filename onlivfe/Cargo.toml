@@ -21,6 +21,10 @@ maintenance = { status = "experimental" }
 name = "onlivfe"
 path = "src/lib.rs"
 
+[features]
+default = ["rand_util"]
+rand_util = []
+
 [dependencies]
 
 serde = { workspace = true, features = ["derive"]  }

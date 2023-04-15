@@ -176,6 +176,7 @@ impl ProfileId {
 	// New and default have slightly different semantics, as the new will be
 	// different each time unlike what would assume for default.
 	#[allow(clippy::new_without_default)]
+	#[cfg(feature = "rand_util")]
 	pub fn new() -> Self { Self(uuid::Uuid::new_v4()) }
 }
 
@@ -199,6 +200,7 @@ impl Profile {
 	// New and default have slightly different semantics, as the new will be
 	// different each time unlike what would assume for default.
 	#[allow(clippy::new_without_default)]
+	#[cfg(feature = "rand_util")]
 	pub fn new() -> Self {
 		Self {
 			sharing_id: ProfileId::new(),
