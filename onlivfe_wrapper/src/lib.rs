@@ -109,13 +109,6 @@ impl<StorageBackend: onlivfe::storage::OnlivfeStore> Onlivfe<StorageBackend> {
 		})
 	}
 
-	/// Gets all the different platforms, useful for syncing unrelated codebases
-	/// to the core's capabilities
-	#[instrument]
-	pub async fn platforms(&self) -> Vec<PlatformType> {
-		PlatformType::iter().collect()
-	}
-
 	/// Gets currently authenticated API user IDs.
 	///
 	/// # Errors

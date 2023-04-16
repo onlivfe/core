@@ -16,7 +16,7 @@
 #![allow(clippy::multiple_crate_versions)]
 
 use serde::{Deserialize, Serialize};
-use strum::{AsRefStr, EnumCount, EnumIter};
+use strum::{AsRefStr, EnumCount, EnumIter, IntoEnumIterator};
 use time::OffsetDateTime;
 
 pub mod cvr;
@@ -55,6 +55,10 @@ pub enum PlatformType {
 	/// It's Neos
 	NeosVR,
 }
+
+/// Gets all the platforms
+#[must_use]
+pub fn platforms() -> Vec<PlatformType> { PlatformType::iter().collect() }
 
 macro_rules! platform_specific {
 	($name:ident) => {
