@@ -1,7 +1,10 @@
+use serde::{Deserialize, Serialize};
+
 use crate::PlatformAccountId;
 
 /// An error that occurred with the login
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "error", content = "data")]
 pub enum LoginError {
 	/// An error occurred
 	Error(String),
