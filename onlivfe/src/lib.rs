@@ -16,7 +16,14 @@
 #![allow(clippy::multiple_crate_versions)]
 
 use serde::{Deserialize, Serialize};
-use strum::{AsRefStr, EnumCount, EnumIter, IntoEnumIterator};
+use strum::{
+	AsRefStr,
+	EnumCount,
+	EnumIter,
+	EnumString,
+	FromRepr,
+	IntoEnumIterator,
+};
 use time::OffsetDateTime;
 
 pub mod cvr;
@@ -41,12 +48,15 @@ pub use assets::*;
 	AsRefStr,
 	EnumIter,
 	EnumCount,
+	FromRepr,
+	EnumString,
 	Serialize,
 	Deserialize,
 	PartialEq,
 	Eq,
 	Hash,
 )]
+#[strum(ascii_case_insensitive)]
 pub enum PlatformType {
 	/// It's VRC
 	VRChat,
