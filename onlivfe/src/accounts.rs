@@ -23,6 +23,7 @@ crate::platform_enum_id!(PlatformAccountId, PlatformAccount {
 
 crate::platform_enum!(
 	/// Details of a platform account friend
+	#[derive(Eq)]
 	PlatformFriend {
 		Box<vrc::model::Friend>,
 		Box<chilloutvr::model::Friend>,

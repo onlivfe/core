@@ -39,7 +39,7 @@ async-trait = "0.1"
 tokio = "1"
 
 # Platform specifics
-neos = { version = "0.6.3", features = [], default-features = false }
+neos = { version = "0.6.4", features = [], default-features = false }
 #neos = { path = "../neos_rs", features = [] }
 chilloutvr = { version = "0.4.0", features = [] }
 #chilloutvr = { path = "../chilloutvr_rs", features = [] }

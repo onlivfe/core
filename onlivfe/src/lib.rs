@@ -126,7 +126,7 @@ macro_rules! platform_enum {
 	($(#[$meta:meta])*
 	$name:ident { $vrc:ty, $cvr:ty, $neos:ty }) => {
 		$(#[$meta])*
-		#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+		#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 		#[serde(tag = "platform", content = "data")]
 		pub enum $name {
 			/// VRChat variant
@@ -216,7 +216,7 @@ impl Profile {
 }
 
 /// Metadata about the data from a platform
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PlatformDataMetadata<Id> {
 	/// When the data was fetched
@@ -226,7 +226,7 @@ pub struct PlatformDataMetadata<Id> {
 }
 
 /// Metadata about the data from a platform with the data
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PlatformDataAndMetadata<T, Id> {
 	/// The actual data itself
 	pub data: T,

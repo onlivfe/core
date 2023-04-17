@@ -9,6 +9,7 @@ crate::platform_id!(
 
 crate::platform_enum!(
 	/// The platform specific instance/session.
+	#[derive(Eq)]
 	Instance {
 		vrc::model::Instance,
 		chilloutvr::model::ExtendedInstanceDetails,

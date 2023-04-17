@@ -22,7 +22,7 @@ impl From<super::PlatformDataMetadata<vrc::id::User>>
 }
 
 /// A VRC login request portion
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum LoginRequestPart {
 	/// Login with credentials
 	LoginRequest(vrc::query::Authenticating),

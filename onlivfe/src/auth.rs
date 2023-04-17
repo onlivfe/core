@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::PlatformAccountId;
 
 /// An error that occurred with the login
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(tag = "error", content = "data")]
 pub enum LoginError {
 	/// An error occurred
@@ -15,6 +15,7 @@ pub enum LoginError {
 
 crate::platform_enum!(
 	/// Credentials for a platform
+	#[derive(Eq)]
 	Authentication {
 		Box<vrc::query::Authentication>,
 		Box<chilloutvr::query::SavedLoginCredentials>,
@@ -28,7 +29,9 @@ crate::platform_enum_id!(PlatformAccountId, Authentication {
 } v);
 
 // Can't use platform enum due to not knowing user IDs before auth has completed
-#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+#[derive(
+	Clone, Debug, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize,
+)]
 #[serde(tag = "platform", content = "data")]
 /// Required for trying to create a platform authentication
 pub enum LoginCredentials {
