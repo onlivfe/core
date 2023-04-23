@@ -33,7 +33,7 @@ impl OnlivfeApiClient {
 				auth.user_id
 			);
 			api.query(query::ExtendUserSession).await.map_err(|e| {
-				error!(
+				warn!(
 					"Reauthentication via user session extension check as {:?} failed: {:?}",
 					auth.user_id, e
 				);
@@ -49,7 +49,7 @@ impl OnlivfeApiClient {
 				})?;
 
 			api.query(query::ExtendUserSession).await.map_err(|e| {
-				error!(
+				warn!(
 					"Reauthentication via user session extension check as {:?} failed: {:?}",
 					&id, e
 				);
@@ -71,7 +71,7 @@ impl OnlivfeApiClient {
 			.get(id)
 			.ok_or_else(|| "Neos API not authenticated".to_owned())?;
 		api.query(query::ExtendUserSession).await.map_err(|e| {
-			error!("User session extension as {:?} failed: {:?}", id, e);
+			warn!("User session extension as {:?} failed: {:?}", id, e);
 			"User session extension failed".to_owned()
 		})?;
 
@@ -88,10 +88,10 @@ impl OnlivfeApiClient {
 			.get(id)
 			.ok_or_else(|| "Neos API not authenticated".to_owned())?;
 		let query = query::SessionInfo { session_id };
-		let session = api
-			.query(query)
-			.await
-			.map_err(|_| "Neos instance query failed".to_owned())?;
+		let session = api.query(query).await.map_err(|e| {
+			warn!("Instance query failed: {:?}", &e);
+			"Neos instance query failed".to_owned()
+		})?;
 
 		Ok(session)
 	}
@@ -106,10 +106,10 @@ impl OnlivfeApiClient {
 			.get(get_as)
 			.ok_or_else(|| "Neos API not authenticated".to_owned())?;
 		let query = query::UserInfo::new(user_id);
-		let user = api
-			.query(query)
-			.await
-			.map_err(|_| "Neos user query failed".to_owned())?;
+		let user = api.query(query).await.map_err(|e| {
+			warn!("User query failed: {:?}", &e);
+			"Neos user query failed".to_owned()
+		})?;
 
 		Ok(user)
 	}
@@ -124,10 +124,10 @@ impl OnlivfeApiClient {
 			.get(id)
 			.ok_or_else(|| "Neos API not authenticated".to_owned())?;
 		let query = query::Friends::default();
-		let friends = api
-			.query(query)
-			.await
-			.map_err(|_| "Neos friends query failed".to_owned())?;
+		let friends = api.query(query).await.map_err(|e| {
+			warn!("Friends query failed: {:?}", &e);
+			"Neos friends query failed".to_owned()
+		})?;
 
 		Ok(friends)
 	}
@@ -156,10 +156,10 @@ impl OnlivfeApiClient {
 				"Internal error, Neos API client creation failed".to_string()
 			})?;
 
-		let user_session = api
-			.query(auth)
-			.await
-			.map_err(|_| "Neos authentication failed".to_owned())?;
+		let user_session = api.query(auth).await.map_err(|e| {
+			warn!("Login query failed: {:?}", &e);
+			"Neos authentication failed".to_owned()
+		})?;
 		trace!("Auth request for {:?} was successful", &user_session.user_id);
 
 		let auth = query::Authentication::from(&user_session);

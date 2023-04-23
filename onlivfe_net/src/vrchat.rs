@@ -19,14 +19,16 @@ impl VRChatClientState {
 	pub(crate) async fn logout(&self, _id: &id::User) -> Result<(), String> {
 		match self {
 			Self::Authenticating(client) => {
-				client
-					.0
-					.query(Logout)
-					.await
-					.map_err(|_| "Logout failed".to_string())?;
+				client.0.query(Logout).await.map_err(|e| {
+					warn!("Authenticating logout query failed: {:?}", &e);
+					"Logout failed".to_string()
+				})?;
 			}
 			Self::Authenticated(client) => {
-				client.query(Logout).await.map_err(|_| "Logout failed".to_string())?;
+				client.query(Logout).await.map_err(|e| {
+					warn!("Authenticated logout query failed: {:?}", &e);
+					"Logout failed".to_string()
+				})?;
 			}
 		}
 
@@ -66,10 +68,10 @@ impl OnlivfeApiClient {
 		})?;
 
 		let current_user: CurrentAccount =
-			api
-				.query(query::GetCurrentUser)
-				.await
-				.map_err(|_| "Reauthentication failed".to_owned())?;
+			api.query(query::GetCurrentUser).await.map_err(|e| {
+				warn!("Reauthentication query failed: {:?}", &e);
+				"Reauthentication failed".to_owned()
+			})?;
 
 		rw_lock_guard.insert(id.clone(), VRChatClientState::Authenticated(api));
 
@@ -86,10 +88,10 @@ impl OnlivfeApiClient {
 		match api {
 			Some(VRChatClientState::Authenticated(api)) => {
 				let query = query::Instance { id: instance_id };
-				let instance = api
-					.query(query)
-					.await
-					.map_err(|_| "VRChat instance query failed".to_owned())?;
+				let instance = api.query(query).await.map_err(|e| {
+					warn!("Instance query failed: {:?}", &e);
+					"VRChat instance query failed".to_owned()
+				})?;
 
 				Ok(instance)
 			}
@@ -107,10 +109,10 @@ impl OnlivfeApiClient {
 		match api {
 			Some(VRChatClientState::Authenticated(api)) => {
 				let query = query::User { id: user_id };
-				let user = api
-					.query(query)
-					.await
-					.map_err(|_| "VRChat instance query failed".to_owned())?;
+				let user = api.query(query).await.map_err(|e| {
+					warn!("User query failed: {:?}", &e);
+					"VRChat user query failed".to_owned()
+				})?;
 
 				Ok(user)
 			}
@@ -129,10 +131,10 @@ impl OnlivfeApiClient {
 			Some(VRChatClientState::Authenticated(api)) => {
 				let mut query = vrc::query::ListFriends::default();
 				query.pagination.limit = 100;
-				let friends = api
-					.query(query)
-					.await
-					.map_err(|_| "VRChat friends query failed".to_owned())?;
+				let friends = api.query(query).await.map_err(|e| {
+					warn!("Friends query failed: {:?}", &e);
+					"VRChat friends query failed".to_owned()
+				})?;
 				Ok(friends)
 			}
 			_ => Err("VRChat API not authenticated".to_string()),
@@ -155,10 +157,10 @@ impl OnlivfeApiClient {
 					(None, "Internal error, VRC API client creation failed".to_string())
 				})?;
 
-				let (login_resp, token) = api
-					.login()
-					.await
-					.map_err(|_| (None, "VRC authentication failed".to_owned()))?;
+				let (login_resp, token) = api.login().await.map_err(|e| {
+					warn!("Login query failed: {:?}", &e);
+					(None, "VRC authentication failed".to_owned())
+				})?;
 
 				let auth = query::Authentication { second_factor_token: None, token };
 
@@ -171,7 +173,8 @@ impl OnlivfeApiClient {
 				})?;
 
 				let user: vrc::model::CurrentAccount =
-					api.query(query::GetCurrentUser).await.map_err(|_| {
+					api.query(query::GetCurrentUser).await.map_err(|e| {
+						warn!("Current account query failed: {:?}", &e);
 						(None, "Couldn't get VRC user after authenticating".to_owned())
 					})?;
 				trace!("Username `{}`'s ID is {:?}", &username, &user.base.id);
@@ -217,7 +220,8 @@ impl OnlivfeApiClient {
 				let (api, mut auth) = api_state;
 
 				let (status, token) =
-					api.verify_second_factor(second_factor).await.map_err(|_| {
+					api.verify_second_factor(second_factor).await.map_err(|e| {
+						warn!("2FA verification query failed: {:?}", &e);
 						(Some(id.clone()), "VRC 2FA verification failed".to_string())
 					})?;
 				trace!("2FA for {:?} got status {:?}", &id, &status);
@@ -233,7 +237,8 @@ impl OnlivfeApiClient {
 					)
 				})?;
 				let user: vrc::model::CurrentAccount =
-					api.query(query::GetCurrentUser).await.map_err(|_| {
+					api.query(query::GetCurrentUser).await.map_err(|e| {
+						warn!("Current account query failed: {:?}", &e);
 						(Some(id), "Couldn't get VRC user after authenticating".to_owned())
 					})?;
 

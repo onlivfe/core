@@ -36,10 +36,10 @@ impl OnlivfeApiClient {
 			.get(id)
 			.ok_or_else(|| "CVR API not authenticated".to_owned())?;
 		let query = query::Instance { instance_id };
-		let instance_resp = api
-			.query(query)
-			.await
-			.map_err(|_| "CVR instance query failed".to_owned())?;
+		let instance_resp = api.query(query).await.map_err(|e| {
+			warn!("Instance query failed: {:?}", &e);
+			"CVR instance query failed".to_owned()
+		})?;
 
 		Ok(instance_resp.data)
 	}
@@ -54,8 +54,10 @@ impl OnlivfeApiClient {
 			.get(get_as)
 			.ok_or_else(|| "CVR API not authenticated".to_owned())?;
 		let query = query::UserDetails { user_id };
-		let user_resp =
-			api.query(query).await.map_err(|_| "CVR user query failed".to_owned())?;
+		let user_resp = api.query(query).await.map_err(|e| {
+			warn!("User query failed: {:?}", &e);
+			"CVR user query failed".to_owned()
+		})?;
 
 		Ok(user_resp.data)
 	}
@@ -70,10 +72,10 @@ impl OnlivfeApiClient {
 			.get(id)
 			.ok_or_else(|| "CVR API not authenticated".to_owned())?;
 		let query = query::FriendList();
-		let friends_resp = api
-			.query(query)
-			.await
-			.map_err(|_| "CVR friends query failed".to_owned())?;
+		let friends_resp = api.query(query).await.map_err(|e| {
+			warn!("Friends query failed: {:?}", &e);
+			"CVR friends query failed".to_owned()
+		})?;
 
 		Ok(friends_resp.data.0)
 	}
@@ -102,7 +104,10 @@ impl OnlivfeApiClient {
 		let user_auth = api
 			.query(auth_req)
 			.await
-			.map_err(|_| "CVR authentication failed".to_owned())?
+			.map_err(|e| {
+				warn!("Login failure: {:?}", &e);
+				"CVR authentication failed".to_owned()
+			})?
 			.data;
 		trace!("Auth request for {:?} was successful", &user_auth.user_id);
 
