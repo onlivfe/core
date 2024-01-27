@@ -1,4 +1,5 @@
 [workspace]
+resolver = "2"
 members = [
 	"onlivfe",
 	"onlivfe_cache_store",
@@ -26,10 +27,10 @@ onlivfe_db_store= { version = "=0.0.0-alpha.0", path = "onlivfe_db_store" }
 
 # Data mangling
 serde = { version = "1" }
-serde_with = { version = "2.3", features = ["time_0_3", "json"] }
+serde_with = { version = "3", features = ["time_0_3", "json"] }
 uuid = { version = "1.3", features = ["serde"] }
 time = { version = "0.3", features = ["serde-well-known"] }
-strum = { version = "0.24" }
+strum = { version = "0.25" }
 
 # Utility
 log = "0.4"
@@ -43,5 +44,5 @@ neos = { version = "0.6.4", features = [], default-features = false }
 #neos = { path = "../neos_rs", features = [] }
 chilloutvr = { version = "0.4.0", features = [] }
 #chilloutvr = { path = "../chilloutvr_rs", features = [] }
-vrc = { version = "0.1.1", features = [] }
+vrc = { version = "0.2.0", features = [] }
 #vrc = { path = "../vrc_rs", features = [] }
