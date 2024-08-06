@@ -10,7 +10,7 @@ CREATE TABLE profiles(
 CREATE TABLE platform_accounts(
 	profile_pk INTEGER NOT NULL,
 	platform_type TEXT NOT NULL
-	CHECK(platform_type IN ('vrchat', 'chilloutvr', 'chilloutvr')),
+	CHECK(platform_type IN ('vrchat', 'chilloutvr', 'resonite')),
 	platform_id TEXT NOT NULL,
 	connection_created_at DATETIME NOT NULL DEFAULT DATETIME('now'),
 
@@ -40,17 +40,17 @@ CREATE TABLE chilloutvr_accounts(
 	REFERENCES platform_accounts(platform_type, platform_id)
 );
 
-CREATE TABLE neosvr_accounts(
+CREATE TABLE resonite_accounts(
 	platform_account_type TEXT NOT NULL
-	GENERATED ALWAYS AS ("neosvr") VIRTUAL,
-	neosvr_user_id TEXT NOT NULL,
-	cache_requester_neosvr_user_id TEXT,
+	GENERATED ALWAYS AS ("resonite") VIRTUAL,
+	resonite_user_id TEXT NOT NULL,
+	cache_requester_resonite_user_id TEXT,
 	cache_stored_at DATETIME NOT NULL DEFAULT DATETIME('now'),
 
 	name TEXT,
 	registered_at DATETIME,
 	is_verified BOOLEAN,
 
-	FOREIGN KEY(platform_account_type, neosvr_user_id)
+	FOREIGN KEY(platform_account_type, resonite_user_id)
 	REFERENCES platform_accounts(platform_type, platform_id)
 );

@@ -21,6 +21,7 @@ maintenance = { status = "experimental" }
 [lib]
 name = "onlivfe_db_store"
 path = "src/lib.rs"
+crate_type = ["lib", "dylib"]
 
 [dependencies]
 num_cpus = "1.15.0"
@@ -30,11 +31,11 @@ async-trait = { workspace = true }
 
 # Platform specifics
 vrc = { workspace = true, features = [] }
-neos = { workspace = true, features = [] }
+resonite = { workspace = true, features = [] }
 chilloutvr = { workspace = true, features = [] }
 
 [dependencies.sqlx]
-version = "0.7.0-alpha.2"
+version = "0.8.0"
 default-features = false
 features = [
 	"runtime-tokio",

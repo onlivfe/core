@@ -1,5 +1,5 @@
-use neos::{
-	api_client::{ApiClient, AuthenticatedNeos, UnauthenticatedNeos},
+use resonite::{
+	api_client::{ApiClient, AuthenticatedResonite, UnauthenticatedResonite},
 	id,
 	model::{Friend, SessionInfo, User},
 	query::{self, Authentication, LoginCredentialsIdentifier},
@@ -9,8 +9,10 @@ use crate::OnlivfeApiClient;
 
 impl OnlivfeApiClient {
 	#[instrument]
-	pub(crate) async fn logout_neos(&self, id: &id::User) -> Result<(), String> {
-		if let Some(client) = self.neos.write().await.remove(id) {
+	pub(crate) async fn logout_resonite(
+		&self, id: &id::User,
+	) -> Result<(), String> {
+		if let Some(client) = self.resonite.write().await.remove(id) {
 			client.query(query::DestroyUserSession).await.map_err(|e| {
 				error!("Logout as {:?} failed: {:?}", id, e);
 				"Logout request failed, removing account anyway".to_string()
@@ -23,11 +25,11 @@ impl OnlivfeApiClient {
 
 	// Auth contains user ID so not passing it in here unlike other clients
 	#[instrument]
-	pub(crate) async fn reauthenticate_neosvr(
+	pub(crate) async fn reauthenticate_resonite(
 		&self, auth: Authentication,
 	) -> Result<(), String> {
 		trace!("Reauthentcating as {:?}", &auth.user_id);
-		if let Some(api) = self.neos.read().await.get(&auth.user_id) {
+		if let Some(api) = self.resonite.read().await.get(&auth.user_id) {
 			warn!(
 				"Already had authenticated client for reauthentication as {:?}",
 				auth.user_id
@@ -41,11 +43,11 @@ impl OnlivfeApiClient {
 			})?;
 		} else {
 			let id = auth.user_id.clone();
-			let mut rw_lock_guard = self.neos.write().await;
-			let api =
-				AuthenticatedNeos::new(self.user_agent.clone(), auth).map_err(|e| {
-					error!("Creating Neos API client as {id:?} failed: {e:?}");
-					"Internal error, Neos API client creation failed".to_string()
+			let mut rw_lock_guard = self.resonite.write().await;
+			let api = AuthenticatedResonite::new(self.user_agent.clone(), auth)
+				.map_err(|e| {
+					error!("Creating Resonite API client as {id:?} failed: {e:?}");
+					"Internal error, Resonite API client creation failed".to_string()
 				})?;
 
 			api.query(query::ExtendUserSession).await.map_err(|e| {
@@ -63,13 +65,13 @@ impl OnlivfeApiClient {
 	}
 
 	#[instrument]
-	pub(crate) async fn extend_auth_neosvr(
+	pub(crate) async fn extend_auth_resonite(
 		&self, id: &id::User,
 	) -> Result<(), String> {
-		let rw_lock_guard = self.neos.read().await;
+		let rw_lock_guard = self.resonite.read().await;
 		let api = rw_lock_guard
 			.get(id)
-			.ok_or_else(|| "Neos API not authenticated".to_owned())?;
+			.ok_or_else(|| "Resonite API not authenticated".to_owned())?;
 		api.query(query::ExtendUserSession).await.map_err(|e| {
 			warn!("User session extension as {:?} failed: {:?}", id, e);
 			"User session extension failed".to_owned()
@@ -79,65 +81,65 @@ impl OnlivfeApiClient {
 	}
 
 	#[instrument]
-	pub(crate) async fn instance_neosvr(
+	pub(crate) async fn instance_resonite(
 		&self, id: &id::User, session_id: id::Session,
 	) -> Result<SessionInfo, String> {
 		trace!("Fetching instance {:?} as {:?}", session_id, id);
-		let rw_lock_guard = self.neos.read().await;
+		let rw_lock_guard = self.resonite.read().await;
 		let api = rw_lock_guard
 			.get(id)
-			.ok_or_else(|| "Neos API not authenticated".to_owned())?;
+			.ok_or_else(|| "Resonite API not authenticated".to_owned())?;
 		let query = query::SessionInfo { session_id };
 		let session = api.query(query).await.map_err(|e| {
 			warn!("Instance query failed: {:?}", &e);
-			"Neos instance query failed".to_owned()
+			"Resonite instance query failed".to_owned()
 		})?;
 
 		Ok(session)
 	}
 
 	#[instrument]
-	pub(crate) async fn user_neosvr(
+	pub(crate) async fn user_resonite(
 		&self, get_as: &id::User, user_id: id::User,
 	) -> Result<User, String> {
 		trace!("Fetching user {:?} as {:?}", user_id, get_as);
-		let rw_lock_guard = self.neos.read().await;
+		let rw_lock_guard = self.resonite.read().await;
 		let api = rw_lock_guard
 			.get(get_as)
-			.ok_or_else(|| "Neos API not authenticated".to_owned())?;
+			.ok_or_else(|| "Resonite API not authenticated".to_owned())?;
 		let query = query::UserInfo::new(user_id);
 		let user = api.query(query).await.map_err(|e| {
 			warn!("User query failed: {:?}", &e);
-			"Neos user query failed".to_owned()
+			"Resonite user query failed".to_owned()
 		})?;
 
 		Ok(user)
 	}
 
 	#[instrument]
-	pub(crate) async fn friends_neosvr(
+	pub(crate) async fn friends_resonite(
 		&self, id: &id::User,
 	) -> Result<Vec<Friend>, String> {
 		trace!("Fetching friends as {:?}", id);
-		let rw_lock_guard = self.neos.read().await;
+		let rw_lock_guard = self.resonite.read().await;
 		let api = rw_lock_guard
 			.get(id)
-			.ok_or_else(|| "Neos API not authenticated".to_owned())?;
+			.ok_or_else(|| "Resonite API not authenticated".to_owned())?;
 		let query = query::Friends::default();
 		let friends = api.query(query).await.map_err(|e| {
 			warn!("Friends query failed: {:?}", &e);
-			"Neos friends query failed".to_owned()
+			"Resonite friends query failed".to_owned()
 		})?;
 
 		Ok(friends)
 	}
 
 	#[instrument]
-	pub(crate) async fn login_neosvr(
+	pub(crate) async fn login_resonite(
 		&self, auth: query::LoginCredentials,
 	) -> Result<(id::User, query::Authentication), String> {
 		trace!("Trying to login as {:?}", auth.identifier);
-		let mut rw_lock_guard = self.neos.write().await;
+		let mut rw_lock_guard = self.resonite.write().await;
 		let api = match &auth.identifier {
 			LoginCredentialsIdentifier::OwnerID(owner_id_str) => {
 				id::User::try_from(owner_id_str.clone())
@@ -149,23 +151,23 @@ impl OnlivfeApiClient {
 		};
 		let api = api
 			.map_or_else(
-				|| UnauthenticatedNeos::new(self.user_agent.clone()),
-				AuthenticatedNeos::downgrade,
+				|| UnauthenticatedResonite::new(self.user_agent.clone()),
+				AuthenticatedResonite::downgrade,
 			)
 			.map_err(|_| {
-				"Internal error, Neos API client creation failed".to_string()
+				"Internal error, Resonite API client creation failed".to_string()
 			})?;
 
 		let user_session = api.query(auth).await.map_err(|e| {
 			warn!("Login query failed: {:?}", &e);
-			"Neos authentication failed".to_owned()
+			"Resonite authentication failed".to_owned()
 		})?;
 		trace!("Auth request for {:?} was successful", &user_session.user_id);
 
 		let auth = query::Authentication::from(&user_session);
 
 		let api = api.upgrade(auth.clone()).map_err(|_| {
-			"Internal error, authenticated Neos API client's creation failed"
+			"Internal error, authenticated Resonite API client's creation failed"
 				.to_owned()
 		})?;
 		rw_lock_guard.insert(user_session.user_id.clone(), api);

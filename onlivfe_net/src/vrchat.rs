@@ -64,7 +64,7 @@ impl OnlivfeApiClient {
 			Some(VRChatClientState::Authenticating(api)) => api.0.recreate(auth),
 		}
 		.map_err(|_| {
-			"Internal error, Neos API client creation failed".to_string()
+			"Internal error, VRChat API client creation failed".to_string()
 		})?;
 
 		let current_user: CurrentAccount =

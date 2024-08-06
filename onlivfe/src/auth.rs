@@ -19,7 +19,7 @@ crate::platform_enum!(
 	Authentication {
 		Box<vrc::query::Authentication>,
 		Box<chilloutvr::query::SavedLoginCredentials>,
-		Box<neos::query::Authentication>
+		Box<resonite::query::Authentication>
 	}
 );
 crate::platform_enum_id!(PlatformAccountId, Authentication {
@@ -39,7 +39,7 @@ pub enum LoginCredentials {
 	VRChat(Box<crate::vrchat::LoginRequestPart>),
 	/// ChilloutVR variant
 	ChilloutVR(Box<chilloutvr::query::LoginCredentials>),
-	/// NeosVR variant
-	NeosVR(Box<neos::query::LoginCredentials>),
+	/// Resonite variant
+	Resonite(Box<resonite::query::Authenticating>),
 }
 crate::platform_specific!(LoginCredentials);

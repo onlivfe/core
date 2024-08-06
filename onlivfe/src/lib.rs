@@ -27,7 +27,7 @@ use strum::{
 use time::OffsetDateTime;
 
 pub mod cvr;
-pub mod neosvr;
+pub mod resonite;
 pub mod storage;
 pub mod vrchat;
 
@@ -62,8 +62,8 @@ pub enum PlatformType {
 	VRChat,
 	/// It's CVR
 	ChilloutVR,
-	/// It's Neos
-	NeosVR,
+	/// It's Resonite
+	Resonite,
 }
 
 /// Gets all the platforms
@@ -77,7 +77,7 @@ macro_rules! platform_specific {
 				match value {
 					$name::VRChat(_) => Self::VRChat,
 					$name::ChilloutVR(_) => Self::ChilloutVR,
-					$name::NeosVR(_) => Self::NeosVR,
+					$name::Resonite(_) => Self::Resonite,
 				}
 			}
 		}
@@ -93,7 +93,7 @@ macro_rules! platform_specific {
 				match &self {
 					Self::VRChat(_) => crate::PlatformType::VRChat,
 					Self::ChilloutVR(_) => crate::PlatformType::ChilloutVR,
-					Self::NeosVR(_) => crate::PlatformType::NeosVR,
+					Self::Resonite(_) => crate::PlatformType::Resonite,
 				}
 			}
 		}
@@ -103,7 +103,7 @@ pub(crate) use platform_specific;
 
 macro_rules! platform_id {
 	($(#[$meta:meta])*
-	$name:ident { $vrc:ty, $cvr:ty, $neos:ty }) => {
+	$name:ident { $vrc:ty, $cvr:ty, $resonite:ty }) => {
 		$(#[$meta])*
 		#[derive(Clone, Hash, PartialEq, Eq, Debug, serde::Serialize, serde::Deserialize)]
 		#[serde(tag = "platform", content = "id")]
@@ -112,8 +112,8 @@ macro_rules! platform_id {
 			VRChat($vrc),
 			/// ChilloutVR variant of the ID
 			ChilloutVR($cvr),
-			/// NeosVR variant of the ID
-			NeosVR($neos),
+			/// Resonite variant of the ID
+			Resonite($resonite),
 		}
 		crate::platform_specific!($name);
 
@@ -124,7 +124,7 @@ macro_rules! platform_id {
 				match self {
 					Self::VRChat(v) => v.to_string(),
 					Self::ChilloutVR(v) => v.to_string(),
-					Self::NeosVR(v) => v.as_ref().to_string(),
+					Self::Resonite(v) => v.as_ref().to_string(),
 				}
 			}
 		}
@@ -134,7 +134,7 @@ pub(crate) use platform_id;
 
 macro_rules! platform_enum {
 	($(#[$meta:meta])*
-	$name:ident { $vrc:ty, $cvr:ty, $neos:ty }) => {
+	$name:ident { $vrc:ty, $cvr:ty, $resonite:ty }) => {
 		$(#[$meta])*
 		#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 		#[serde(tag = "platform", content = "data")]
@@ -143,8 +143,8 @@ macro_rules! platform_enum {
 			VRChat(crate::PlatformDataAndMetadata<$vrc, vrc::id::User>),
 			/// ChilloutVR variant
 			ChilloutVR(crate::PlatformDataAndMetadata<$cvr, chilloutvr::id::User>),
-			/// NeosVR variant
-			NeosVR(crate::PlatformDataAndMetadata<$neos, neos::id::User>),
+			/// Resonite variant
+			Resonite(crate::PlatformDataAndMetadata<$resonite, resonite::id::User>),
 		}
 		crate::platform_specific!($name);
 
@@ -155,7 +155,7 @@ macro_rules! platform_enum {
 				match self {
 					Self::VRChat(v) => v.metadata.clone().into(),
 					Self::ChilloutVR(v)  => v.metadata.clone().into(),
-					Self::NeosVR(v)  => v.metadata.clone().into(),
+					Self::Resonite(v)  => v.metadata.clone().into(),
 				}
 			}
 		}
@@ -164,7 +164,7 @@ macro_rules! platform_enum {
 pub(crate) use platform_enum;
 
 macro_rules! platform_enum_id {
-	($id:ty, $name:ty { $vrc:expr, $cvr:expr, $neos:expr } $local_var:ident) => {
+	($id:ty, $name:ty { $vrc:expr, $cvr:expr, $resonite:expr } $local_var:ident) => {
 		impl $name {
 			/// Gets the ID
 			#[must_use]
@@ -172,7 +172,7 @@ macro_rules! platform_enum_id {
 				match self {
 					Self::VRChat($local_var) => <$id>::VRChat($vrc),
 					Self::ChilloutVR($local_var) => <$id>::ChilloutVR($cvr),
-					Self::NeosVR($local_var) => <$id>::NeosVR($neos),
+					Self::Resonite($local_var) => <$id>::Resonite($resonite),
 				}
 			}
 		}

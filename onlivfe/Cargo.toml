@@ -20,6 +20,7 @@ maintenance = { status = "experimental" }
 [lib]
 name = "onlivfe"
 path = "src/lib.rs"
+crate_type = ["lib", "dylib"]
 
 [features]
 default = ["rand_util"]
@@ -38,9 +39,12 @@ futures = { workspace = true }
 
 # Platform specifics
 vrc = { workspace = true }
-neos = { workspace = true }
+resonite = { workspace = true }
 chilloutvr = { workspace = true }
 
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "nightly"]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(nightly)'] }

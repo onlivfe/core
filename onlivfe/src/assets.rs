@@ -3,7 +3,7 @@ crate::platform_id!(
 	WorldId {
 		vrc::id::World,
 		chilloutvr::id::Asset,
-		neos::id::Record
+		resonite::id::Record
 	}
 );
 
@@ -12,7 +12,7 @@ crate::platform_enum!(
 	World {
 		Box<vrc::model::World>,
 		Box<chilloutvr::model::WorldDetails>,
-		Box<neos::model::Record>
+		Box<resonite::model::Record>
 	}
 );
 crate::platform_enum_id!(WorldId, World {
@@ -26,7 +26,7 @@ crate::platform_id!(
 	AvatarId {
 		vrc::id::Avatar,
 		chilloutvr::id::Asset,
-		neos::id::Record
+		resonite::id::Record
 	}
 );
 
@@ -35,7 +35,7 @@ crate::platform_enum!(
 	Avatar {
 		Box<vrc::model::Avatar>,
 		Box<chilloutvr::model::AvatarDetails>,
-		Box<neos::model::Record>
+		Box<resonite::model::Record>
 	}
 );
 crate::platform_enum_id!(AvatarId, Avatar {

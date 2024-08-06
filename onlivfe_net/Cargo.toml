@@ -20,6 +20,7 @@ maintenance = { status = "experimental" }
 [lib]
 name = "onlivfe_net"
 path = "src/lib.rs"
+crate_type = ["lib", "dylib"]
 
 [dependencies]
 onlivfe = { workspace = true }
@@ -30,7 +31,7 @@ tracing = { workspace = true }
 
 # Platform specifics
 vrc = { workspace = true, features = ["api_client"] }
-neos = { workspace = true, features = ["http_client"] }
+resonite = { workspace = true, features = ["http_client", "signalr_client"] }
 chilloutvr = { workspace = true, features = ["http_client", "ws_client"] }
 
 [package.metadata.docs.rs]

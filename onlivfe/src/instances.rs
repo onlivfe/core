@@ -3,7 +3,7 @@ crate::platform_id!(
 	InstanceId {
 		vrc::id::WorldInstance,
 		chilloutvr::id::Instance,
-		neos::id::Session
+		resonite::id::Session
 	}
 );
 
@@ -13,7 +13,7 @@ crate::platform_enum!(
 	Instance {
 		vrc::model::Instance,
 		chilloutvr::model::ExtendedInstanceDetails,
-		neos::model::SessionInfo
+		resonite::model::SessionInfo
 	}
 );
 crate::platform_enum_id!(InstanceId, Instance {

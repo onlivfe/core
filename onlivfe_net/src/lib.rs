@@ -22,8 +22,8 @@ extern crate tracing;
 
 use std::collections::HashMap;
 
+use ::resonite::api_client::AuthenticatedResonite;
 use chilloutvr::api_client::AuthenticatedCVR;
-use neos::api_client::AuthenticatedNeos;
 use onlivfe::{
 	Authentication,
 	Instance,
@@ -41,7 +41,7 @@ use tokio::sync::RwLock;
 use vrchat::VRChatClientState;
 
 mod cvr;
-mod neosvr;
+mod resonite;
 mod vrchat;
 
 /// An unified API client interface for the different platforms
@@ -51,8 +51,8 @@ pub struct OnlivfeApiClient {
 	vrc: RwLock<HashMap<vrc::id::User, VRChatClientState>>,
 	/// The ChilloutVR API client
 	cvr: RwLock<HashMap<chilloutvr::id::User, AuthenticatedCVR>>,
-	/// The NeosVR API client
-	neos: RwLock<HashMap<neos::id::User, AuthenticatedNeos>>,
+	/// The Resonite API client
+	resonite: RwLock<HashMap<resonite::id::User, AuthenticatedResonite>>,
 }
 
 impl std::fmt::Debug for OnlivfeApiClient {
@@ -70,7 +70,7 @@ impl OnlivfeApiClient {
 		Self {
 			vrc: RwLock::default(),
 			cvr: RwLock::default(),
-			neos: RwLock::default(),
+			resonite: RwLock::default(),
 			user_agent,
 		}
 	}
@@ -98,8 +98,8 @@ impl OnlivfeApiClient {
 			PlatformType::ChilloutVR => {
 				self.cvr.read().await.iter().map(|v| v.0.clone().into()).collect()
 			}
-			PlatformType::NeosVR => {
-				self.neos.read().await.iter().map(|v| v.0.clone().into()).collect()
+			PlatformType::Resonite => {
+				self.resonite.read().await.iter().map(|v| v.0.clone().into()).collect()
 			}
 		}
 	}
@@ -117,7 +117,7 @@ impl OnlivfeApiClient {
 		match id {
 			PlatformAccountId::VRChat(id) => self.logout_vrchat(id).await?,
 			PlatformAccountId::ChilloutVR(id) => self.logout_chilloutvr(id).await?,
-			PlatformAccountId::NeosVR(id) => self.logout_neos(id).await?,
+			PlatformAccountId::Resonite(id) => self.logout_resonite(id).await?,
 		}
 
 		Ok(())
@@ -160,10 +160,10 @@ impl OnlivfeApiClient {
 					user_id,
 				))
 			}
-			LoginCredentials::NeosVR(auth) => {
+			LoginCredentials::Resonite(auth) => {
 				let (user_id, auth) =
-					self.login_neosvr(*auth).await.map_err(LoginError::Error)?;
-				Authentication::NeosVR(PlatformDataAndMetadata::new_now(
+					self.login_resonite(*auth).await.map_err(LoginError::Error)?;
+				Authentication::Resonite(PlatformDataAndMetadata::new_now(
 					Box::new(auth),
 					user_id,
 				))
@@ -209,13 +209,13 @@ impl OnlivfeApiClient {
 					})
 					.collect(),
 			),
-			PlatformAccountId::NeosVR(id) => Ok(
+			PlatformAccountId::Resonite(id) => Ok(
 				self
-					.friends_neosvr(id)
+					.friends_resonite(id)
 					.await?
 					.into_iter()
 					.map(|friend| {
-						PlatformFriend::NeosVR(PlatformDataAndMetadata::new_now(
+						PlatformFriend::Resonite(PlatformDataAndMetadata::new_now(
 							Box::new(friend),
 							id.clone(),
 						))
@@ -251,12 +251,14 @@ impl OnlivfeApiClient {
 					instance, get_as,
 				)))
 			}
-			InstanceId::NeosVR(instance_id) => {
-				let PlatformAccountId::NeosVR(get_as) = get_as else {
+			InstanceId::Resonite(instance_id) => {
+				let PlatformAccountId::Resonite(get_as) = get_as else {
 					return Err("Auth and platform types don't match!".to_owned());
 				};
-				let instance = self.instance_neosvr(&get_as, instance_id).await?;
-				Ok(Instance::NeosVR(PlatformDataAndMetadata::new_now(instance, get_as)))
+				let instance = self.instance_resonite(&get_as, instance_id).await?;
+				Ok(Instance::Resonite(PlatformDataAndMetadata::new_now(
+					instance, get_as,
+				)))
 			}
 		}
 	}
@@ -291,12 +293,12 @@ impl OnlivfeApiClient {
 					get_as,
 				)))
 			}
-			PlatformAccountId::NeosVR(account_id) => {
-				let PlatformAccountId::NeosVR(get_as) = get_as else {
+			PlatformAccountId::Resonite(account_id) => {
+				let PlatformAccountId::Resonite(get_as) = get_as else {
 					return Err("Auth and platform types don't match!".to_owned());
 				};
-				let account = self.user_neosvr(&get_as, account_id).await?;
-				Ok(PlatformAccount::NeosVR(PlatformDataAndMetadata::new_now(
+				let account = self.user_resonite(&get_as, account_id).await?;
+				Ok(PlatformAccount::Resonite(PlatformDataAndMetadata::new_now(
 					Box::new(account),
 					get_as,
 				)))
@@ -332,10 +334,10 @@ impl OnlivfeApiClient {
 					id,
 				)))
 			}
-			Authentication::NeosVR(mut auth) => {
-				self.reauthenticate_neosvr((*auth.data).clone()).await?;
+			Authentication::Resonite(mut auth) => {
+				self.reauthenticate_resonite((*auth.data).clone()).await?;
 				auth.metadata.updated_at = OffsetDateTime::now_utc();
-				Ok(Authentication::NeosVR(auth))
+				Ok(Authentication::Resonite(auth))
 			}
 		}
 	}

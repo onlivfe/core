@@ -3,7 +3,7 @@ crate::platform_id!(
 	PlatformAccountId {
 		vrc::id::User,
 		chilloutvr::id::User,
-		neos::id::User
+		resonite::id::User
 	}
 );
 
@@ -12,7 +12,7 @@ crate::platform_enum!(
 	PlatformAccount {
 		Box<vrc::model::AnyUser>,
 		Box<chilloutvr::model::UserDetails>,
-		Box<neos::model::User>
+		Box<resonite::model::User>
 	}
 );
 crate::platform_enum_id!(PlatformAccountId, PlatformAccount {
@@ -27,7 +27,7 @@ crate::platform_enum!(
 	PlatformFriend {
 		Box<vrc::model::Friend>,
 		Box<chilloutvr::model::Friend>,
-		Box<neos::model::Friend>
+		Box<resonite::model::Friend>
 	}
 );
 crate::platform_enum_id!(PlatformAccountId, PlatformFriend {

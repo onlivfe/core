@@ -20,9 +20,10 @@ maintenance = { status = "experimental" }
 [lib]
 name = "onlivfe_cache_store"
 path = "src/lib.rs"
+crate_type = ["lib", "dylib"]
 
 [dependencies]
-directories = "4"
+directories = "5.0.1"
 bson = "2"
 
 onlivfe = { workspace = true }
@@ -31,7 +32,7 @@ tokio = { workspace = true }
 
 # Platform specifics
 vrc = { workspace = true, features = [] }
-neos = { workspace = true, features = [] }
+resonite = { workspace = true, features = [] }
 chilloutvr = { workspace = true, features = [] }
 
 [package.metadata.docs.rs]

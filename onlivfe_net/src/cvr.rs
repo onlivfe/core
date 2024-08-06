@@ -97,7 +97,7 @@ impl OnlivfeApiClient {
 				AuthenticatedCVR::downgrade,
 			)
 			.map_err(|_| {
-				"Internal error, Neos API client creation failed".to_string()
+				"Internal error, Resonite API client creation failed".to_string()
 			})?;
 
 		let auth_req: AuthType = auth.into();
