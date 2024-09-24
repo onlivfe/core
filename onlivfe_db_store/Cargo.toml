@@ -21,7 +21,7 @@ maintenance = { status = "experimental" }
 [lib]
 name = "onlivfe_db_store"
 path = "src/lib.rs"
-crate_type = ["lib", "dylib"]
+crate-type = ["lib", "dylib"]
 
 [dependencies]
 num_cpus = "1.16.0"

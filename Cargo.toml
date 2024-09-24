@@ -42,7 +42,7 @@ tokio = "1"
 # Platform specifics
 resonite = { version = "0.3.2", features = [], default-features = false }
 #resonite = { path = "../resonite", features = [] }
-chilloutvr = { version = "0.5.0", features = [] }
+chilloutvr = { version = "0.6.0", features = [] }
 #chilloutvr = { path = "../chilloutvr_rs", features = [] }
 vrc = { version = "0.5.0", features = [] }
 #vrc = { path = "../vrc_rs", features = [] }

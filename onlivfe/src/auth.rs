@@ -40,6 +40,6 @@ pub enum LoginCredentials {
 	/// CVR variant
 	ChilloutVR(Box<chilloutvr::query::LoginCredentials>),
 	/// Resonite variant
-	Resonite(Box<resonite::query::Authenticating>),
+	Resonite(Box<resonite::api_client::UserSessionQueryWithHeaders>),
 }
 crate::platform_specific!(LoginCredentials);

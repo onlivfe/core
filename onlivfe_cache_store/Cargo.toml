@@ -20,7 +20,7 @@ maintenance = { status = "experimental" }
 [lib]
 name = "onlivfe_cache_store"
 path = "src/lib.rs"
-crate_type = ["lib", "dylib"]
+crate-type = ["lib", "dylib"]
 
 [dependencies]
 directories = "5.0.1"

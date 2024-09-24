@@ -20,7 +20,7 @@ maintenance = { status = "experimental" }
 [lib]
 name = "onlivfe_wrapper"
 path = "src/lib.rs"
-crate_type = ["lib", "dylib"]
+crate-type = ["lib", "dylib"]
 
 [dependencies]
 human-panic = "2.0.1"

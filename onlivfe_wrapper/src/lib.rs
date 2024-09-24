@@ -20,6 +20,7 @@ extern crate tracing;
 
 use std::sync::Arc;
 
+use human_panic::Metadata;
 use onlivfe::{
 	Authentication,
 	Instance,
@@ -63,12 +64,13 @@ pub fn init(
 		trace!("Initialized tracing");
 	}
 
-	human_panic::setup_panic!(Metadata {
-		name: name.into(),
-		version: version.into(),
-		authors: "Onlivfe contributors".into(),
-		homepage: "onlivfe.com".into(),
-	});
+	let name = name.into();
+	let version = version.into();
+	human_panic::setup_panic!(
+		Metadata::new(name.clone(), version.clone())
+			.authors("Onlivfe contributors")
+			.homepage("onlivfe.com")
+	);
 
 	Ok(())
 }

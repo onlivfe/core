@@ -211,7 +211,7 @@ impl OnlivfeApiClient {
 			),
 			PlatformAccountId::Resonite(id) => Ok(
 				self
-					.friends_resonite(id)
+					.contacts_resonite(id)
 					.await?
 					.into_iter()
 					.map(|friend| {

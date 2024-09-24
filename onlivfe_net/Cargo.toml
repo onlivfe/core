@@ -20,7 +20,7 @@ maintenance = { status = "experimental" }
 [lib]
 name = "onlivfe_net"
 path = "src/lib.rs"
-crate_type = ["lib", "dylib"]
+crate-type = ["lib", "dylib"]
 
 [dependencies]
 onlivfe = { workspace = true }

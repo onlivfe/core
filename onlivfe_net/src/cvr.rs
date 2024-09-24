@@ -90,12 +90,11 @@ impl OnlivfeApiClient {
 		api_config.mature_content_enabled = true;
 
 		let mut rw_lock_guard = self.cvr.write().await;
-		let api = possible_existing
-			.and_then(|id| rw_lock_guard.remove(&id))
-			.map_or_else(
-				|| UnauthenticatedCVR::new(api_config),
-				AuthenticatedCVR::downgrade,
-			)
+		let api =
+			match possible_existing.and_then(|id| rw_lock_guard.remove(&id)) {
+				Some(api) => api.downgrade().await,
+				None => UnauthenticatedCVR::new(api_config),
+			}
 			.map_err(|_| {
 				"Internal error, Resonite API client creation failed".to_string()
 			})?;
@@ -115,7 +114,7 @@ impl OnlivfeApiClient {
 			user_auth.user_id.clone(),
 			query::SavedLoginCredentials::from(user_auth),
 		);
-		let api = api.upgrade(creds.clone()).map_err(|_| {
+		let api: AuthenticatedCVR = api.upgrade(creds.clone()).map_err(|_| {
 			"Internal error, authenticated CVR API client's creation failed"
 				.to_owned()
 		})?;

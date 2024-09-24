@@ -1,5 +1,11 @@
 use resonite::{
-	api_client::{ApiClient, AuthenticatedResonite, UnauthenticatedResonite},
+	api_client::{
+		ApiClient,
+		AuthenticatedResonite,
+		AuthenticatingResonite,
+		UnauthenticatedResonite,
+		UserSessionQueryWithHeaders,
+	},
 	id,
 	model::{Contact, SessionInfo, User},
 	query::{self, Authentication, LoginCredentialsIdentifier},
@@ -12,11 +18,12 @@ impl OnlivfeApiClient {
 	pub(crate) async fn logout_resonite(
 		&self, id: &id::User,
 	) -> Result<(), String> {
-		if let Some(client) = self.resonite.write().await.remove(id) {
-			client.query(query::DestroyUserSession).await.map_err(|e| {
-				error!("Logout as {:?} failed: {:?}", id, e);
-				"Logout request failed, removing account anyway".to_string()
-			})?;
+		if let Some(_client) = self.resonite.write().await.remove(id) {
+			// TODO: Logout request
+			//client.query(query::DestroyUserSession).await.map_err(|e| {
+			//	error!("Logout as {:?} failed: {:?}", id, e);
+			//	"Logout request failed, removing account anyway".to_string()
+			//})?;
 			return Ok(());
 		}
 		warn!("Tried to log out of non-existent account {:?}", id);
@@ -117,7 +124,7 @@ impl OnlivfeApiClient {
 	}
 
 	#[instrument]
-	pub(crate) async fn Contacts_resonite(
+	pub(crate) async fn contacts_resonite(
 		&self, id: &id::User,
 	) -> Result<Vec<Contact>, String> {
 		trace!("Fetching Contacts as {:?}", id);
@@ -125,22 +132,22 @@ impl OnlivfeApiClient {
 		let api = rw_lock_guard
 			.get(id)
 			.ok_or_else(|| "Resonite API not authenticated".to_owned())?;
-		let query = query::Contacts::default();
-		let Contacts = api.query(query).await.map_err(|e| {
+		let query = query::Contacts;
+		let contacts = api.query(query).await.map_err(|e| {
 			warn!("Contacts query failed: {:?}", &e);
 			"Resonite Contacts query failed".to_owned()
 		})?;
 
-		Ok(Contacts)
+		Ok(contacts)
 	}
 
 	#[instrument]
 	pub(crate) async fn login_resonite(
-		&self, auth: query::LoginCredentials,
+		&self, auth: UserSessionQueryWithHeaders,
 	) -> Result<(id::User, query::Authentication), String> {
-		trace!("Trying to login as {:?}", auth.identifier);
+		trace!("Trying to login as {:?}", auth.body.identifier);
 		let mut rw_lock_guard = self.resonite.write().await;
-		let api = match &auth.identifier {
+		let api = match &auth.body.identifier {
 			LoginCredentialsIdentifier::OwnerID(owner_id_str) => {
 				id::User::try_from(owner_id_str.clone())
 					.map(|user_id| rw_lock_guard.remove(&user_id))
@@ -157,20 +164,27 @@ impl OnlivfeApiClient {
 			.map_err(|_| {
 				"Internal error, Resonite API client creation failed".to_string()
 			})?;
+		let api = AuthenticatingResonite::from((api, auth.data));
 
-		let user_session = api.query(auth).await.map_err(|e| {
+		let result = api.query(auth.body).await.map_err(|e| {
 			warn!("Login query failed: {:?}", &e);
 			"Resonite authentication failed".to_owned()
 		})?;
-		trace!("Auth request for {:?} was successful", &user_session.user_id);
+		trace!(
+			"Auth request for {:?} was successful",
+			&result.user_session.user_id
+		);
 
-		let auth = query::Authentication::from(&user_session);
+		let user_id = result.user_session.user_id.clone();
+		let auth = query::Authentication::from(result.user_session);
 
-		let api = api.upgrade(auth.clone()).map_err(|_| {
-			"Internal error, authenticated Resonite API client's creation failed"
-				.to_owned()
-		})?;
-		rw_lock_guard.insert(user_session.user_id.clone(), api);
-		Ok((user_session.user_id, auth))
+		let api = UnauthenticatedResonite::from(api)
+			.upgrade(auth.clone())
+			.map_err(|_| {
+				"Internal error, authenticated Resonite API client's creation failed"
+					.to_owned()
+			})?;
+		rw_lock_guard.insert(user_id.clone(), api);
+		Ok((user_id, auth))
 	}
 }
