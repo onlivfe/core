@@ -39,7 +39,6 @@ where
 
 use directories::ProjectDirs;
 use onlivfe::{
-	storage::OnlivfeStore,
 	Authentication,
 	Avatar,
 	AvatarId,
@@ -52,6 +51,7 @@ use onlivfe::{
 	ProfileId,
 	World,
 	WorldId,
+	storage::OnlivfeStore,
 };
 use tokio::sync::RwLock;
 

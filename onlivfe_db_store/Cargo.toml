@@ -24,7 +24,7 @@ path = "src/lib.rs"
 crate_type = ["lib", "dylib"]
 
 [dependencies]
-num_cpus = "1.15.0"
+num_cpus = "1.16.0"
 
 onlivfe = { workspace = true }
 async-trait = { workspace = true }
@@ -35,7 +35,7 @@ resonite = { workspace = true, features = [] }
 chilloutvr = { workspace = true, features = [] }
 
 [dependencies.sqlx]
-version = "0.8.0"
+version = "0.8.2"
 default-features = false
 features = [
 	"runtime-tokio",

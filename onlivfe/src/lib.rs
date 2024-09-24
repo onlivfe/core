@@ -108,9 +108,9 @@ macro_rules! platform_id {
 		#[derive(Clone, Hash, PartialEq, Eq, Debug, serde::Serialize, serde::Deserialize)]
 		#[serde(tag = "platform", content = "id")]
 		pub enum $name {
-			/// VRChat variant of the ID
+			/// VRC variant of the ID
 			VRChat($vrc),
-			/// ChilloutVR variant of the ID
+			/// CVR variant of the ID
 			ChilloutVR($cvr),
 			/// Resonite variant of the ID
 			Resonite($resonite),
@@ -136,12 +136,14 @@ macro_rules! platform_enum {
 	($(#[$meta:meta])*
 	$name:ident { $vrc:ty, $cvr:ty, $resonite:ty }) => {
 		$(#[$meta])*
+		// Wrong warning
+		#[allow(clippy::derive_partial_eq_without_eq)]
 		#[derive(Clone, Debug, PartialEq, serde::Serialize, serde::Deserialize)]
 		#[serde(tag = "platform", content = "data")]
 		pub enum $name {
-			/// VRChat variant
+			/// VRC variant
 			VRChat(crate::PlatformDataAndMetadata<$vrc, vrc::id::User>),
-			/// ChilloutVR variant
+			/// CVR variant
 			ChilloutVR(crate::PlatformDataAndMetadata<$cvr, chilloutvr::id::User>),
 			/// Resonite variant
 			Resonite(crate::PlatformDataAndMetadata<$resonite, resonite::id::User>),

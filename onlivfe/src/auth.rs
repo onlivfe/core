@@ -35,9 +35,9 @@ crate::platform_enum_id!(PlatformAccountId, Authentication {
 #[serde(tag = "platform", content = "data")]
 /// Required for trying to create a platform authentication
 pub enum LoginCredentials {
-	/// VRChat variant
+	/// VRC variant
 	VRChat(Box<crate::vrchat::LoginRequestPart>),
-	/// ChilloutVR variant
+	/// CVR variant
 	ChilloutVR(Box<chilloutvr::query::LoginCredentials>),
 	/// Resonite variant
 	Resonite(Box<resonite::query::Authenticating>),

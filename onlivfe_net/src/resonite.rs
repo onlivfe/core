@@ -1,7 +1,7 @@
 use resonite::{
 	api_client::{ApiClient, AuthenticatedResonite, UnauthenticatedResonite},
 	id,
-	model::{Friend, SessionInfo, User},
+	model::{Contact, SessionInfo, User},
 	query::{self, Authentication, LoginCredentialsIdentifier},
 };
 
@@ -117,21 +117,21 @@ impl OnlivfeApiClient {
 	}
 
 	#[instrument]
-	pub(crate) async fn friends_resonite(
+	pub(crate) async fn Contacts_resonite(
 		&self, id: &id::User,
-	) -> Result<Vec<Friend>, String> {
-		trace!("Fetching friends as {:?}", id);
+	) -> Result<Vec<Contact>, String> {
+		trace!("Fetching Contacts as {:?}", id);
 		let rw_lock_guard = self.resonite.read().await;
 		let api = rw_lock_guard
 			.get(id)
 			.ok_or_else(|| "Resonite API not authenticated".to_owned())?;
-		let query = query::Friends::default();
-		let friends = api.query(query).await.map_err(|e| {
-			warn!("Friends query failed: {:?}", &e);
-			"Resonite friends query failed".to_owned()
+		let query = query::Contacts::default();
+		let Contacts = api.query(query).await.map_err(|e| {
+			warn!("Contacts query failed: {:?}", &e);
+			"Resonite Contacts query failed".to_owned()
 		})?;
 
-		Ok(friends)
+		Ok(Contacts)
 	}
 
 	#[instrument]

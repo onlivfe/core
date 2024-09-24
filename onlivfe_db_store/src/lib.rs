@@ -16,7 +16,6 @@
 #![allow(clippy::multiple_crate_versions)]
 
 use onlivfe::{
-	storage::OnlivfeStore,
 	Authentication,
 	Avatar,
 	AvatarId,
@@ -29,6 +28,7 @@ use onlivfe::{
 	ProfileId,
 	World,
 	WorldId,
+	storage::OnlivfeStore,
 };
 
 #[derive(Debug)]
@@ -47,8 +47,8 @@ impl OnlivfeDatabaseStorageBackend {
 	/// If the storage connection setup fails
 	pub async fn new(db_url: &str) -> Result<Self, String> {
 		use sqlx::{
-			sqlite::{SqlitePool, SqlitePoolOptions},
 			Executor,
+			sqlite::{SqlitePool, SqlitePoolOptions},
 		};
 
 		let db: SqlitePool = SqlitePoolOptions::new()

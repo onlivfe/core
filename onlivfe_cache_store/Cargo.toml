@@ -24,7 +24,7 @@ crate_type = ["lib", "dylib"]
 
 [dependencies]
 directories = "5.0.1"
-bson = "2"
+bson = "2.13.0"
 
 onlivfe = { workspace = true }
 async-trait = { workspace = true }

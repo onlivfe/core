@@ -52,7 +52,7 @@ pub struct OnlivfeApiClient {
 	/// The ChilloutVR API client
 	cvr: RwLock<HashMap<chilloutvr::id::User, AuthenticatedCVR>>,
 	/// The Resonite API client
-	resonite: RwLock<HashMap<resonite::id::User, AuthenticatedResonite>>,
+	resonite: RwLock<HashMap<::resonite::id::User, AuthenticatedResonite>>,
 }
 
 impl std::fmt::Debug for OnlivfeApiClient {

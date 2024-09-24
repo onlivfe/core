@@ -27,7 +27,7 @@ crate::platform_enum!(
 	PlatformFriend {
 		Box<vrc::model::Friend>,
 		Box<chilloutvr::model::Friend>,
-		Box<resonite::model::Friend>
+		Box<resonite::model::Contact>
 	}
 );
 crate::platform_enum_id!(PlatformAccountId, PlatformFriend {
