@@ -23,7 +23,7 @@ path = "src/lib.rs"
 crate-type = ["lib", "dylib"]
 
 [dependencies]
-human-panic = "2.0.1"
+human-panic = "2.0.2"
 tracing = { workspace = true }
 
 onlivfe = { workspace = true }
@@ -37,7 +37,7 @@ android_logger = "0.14.1"
 log = "0.4.22" 
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 dotenvy = "0.15.7"
 
 [package.metadata.docs.rs]

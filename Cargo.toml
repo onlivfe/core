@@ -26,10 +26,10 @@ onlivfe_cache_store = { version = "=0.0.0-alpha.0", path = "onlivfe_cache_store"
 onlivfe_db_store= { version = "=0.0.0-alpha.0", path = "onlivfe_db_store" }
 
 # Data mangling
-serde = { version = "1.0.210" }
-serde_with = { version = "3.9.0", features = ["time_0_3", "json"] }
-uuid = { version = "1.10.0", features = ["serde"] }
-time = { version = "0.3.36", features = ["serde-well-known"] }
+serde = { version = "1.0.215" }
+serde_with = { version = "3.11.0", features = ["time_0_3", "json"] }
+uuid = { version = "1.11.0", features = ["serde"] }
+time = { version = "0.3.37", features = ["serde-well-known"] }
 strum = { version = "0.26.3" }
 
 # Utility
