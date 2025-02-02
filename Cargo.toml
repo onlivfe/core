@@ -28,7 +28,6 @@ onlivfe_db_store= { version = "=0.0.0-alpha.0", path = "onlivfe_db_store" }
 # Data mangling
 serde = { version = "1.0.215" }
 serde_with = { version = "3.11.0", features = ["time_0_3", "json"] }
-uuid = { version = "1.11.0", features = ["serde"] }
 time = { version = "0.3.37", features = ["serde-well-known"] }
 strum = { version = "0.26.3" }
 
@@ -40,9 +39,10 @@ async-trait = "0.1"
 tokio = "1"
 
 # Platform specifics
-resonite = { version = "0.3.3", features = [], default-features = false }
-#resonite = { path = "../resonite", features = [] }
+#resonite = { version = "0.3.3", features = [], default-features = false }
+resonite = { path = "../resonite_rs", features = [], default-features = false }
 chilloutvr = { version = "0.6.0", features = [] }
 #chilloutvr = { path = "../chilloutvr_rs", features = [] }
 vrc = { version = "0.5.0", features = [] }
 #vrc = { path = "../vrc_rs", features = [] }
+

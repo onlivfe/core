@@ -20,7 +20,7 @@ maintenance = { status = "experimental" }
 [lib]
 name = "onlivfe_wrapper"
 path = "src/lib.rs"
-crate-type = ["lib", "dylib"]
+
 
 [dependencies]
 human-panic = "2.0.2"
@@ -28,6 +28,8 @@ tracing = { workspace = true }
 
 onlivfe = { workspace = true }
 onlivfe_net = { workspace = true }
+onlivfe_cache_store = { workspace = true }
+
 tokio = { workspace = true }
 strum = { workspace = true  }
 time = { workspace = true  }
@@ -37,9 +39,13 @@ android_logger = "0.14.1"
 log = "0.4.22" 
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
-tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3.19", features = ["time", "parking_lot", "env-filter", "fmt", "json", "local-time"] }
+
 dotenvy = "0.15.7"
 
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "nightly"]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(nightly)'] }

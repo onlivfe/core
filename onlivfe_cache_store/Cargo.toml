@@ -20,7 +20,7 @@ maintenance = { status = "experimental" }
 [lib]
 name = "onlivfe_cache_store"
 path = "src/lib.rs"
-crate-type = ["lib", "dylib"]
+
 
 [dependencies]
 directories = "5.0.1"
@@ -38,3 +38,6 @@ chilloutvr = { workspace = true, features = [] }
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "nightly"]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(nightly)'] }

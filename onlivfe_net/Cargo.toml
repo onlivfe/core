@@ -20,7 +20,7 @@ maintenance = { status = "experimental" }
 [lib]
 name = "onlivfe_net"
 path = "src/lib.rs"
-crate-type = ["lib", "dylib"]
+
 
 [dependencies]
 onlivfe = { workspace = true }
@@ -37,3 +37,6 @@ chilloutvr = { workspace = true, features = ["http_client", "ws_client"] }
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "nightly"]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(nightly)'] }

@@ -4,11 +4,15 @@ use resonite::{
 		AuthenticatedResonite,
 		AuthenticatingResonite,
 		UnauthenticatedResonite,
-		UserSessionQueryWithHeaders,
 	},
 	id,
 	model::{Contact, SessionInfo, User},
-	query::{self, Authentication, LoginCredentialsIdentifier},
+	query::{
+		self,
+		Authentication,
+		LoginCredentialsIdentifier,
+		UserSessionQueryWithHeaders,
+	},
 };
 
 use crate::OnlivfeApiClient;

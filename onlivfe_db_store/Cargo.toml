@@ -21,7 +21,7 @@ maintenance = { status = "experimental" }
 [lib]
 name = "onlivfe_db_store"
 path = "src/lib.rs"
-crate-type = ["lib", "dylib"]
+
 
 [dependencies]
 num_cpus = "1.16.0"
@@ -41,7 +41,6 @@ features = [
 	"runtime-tokio",
 	"sqlite",
 	"json",
-	"uuid",
 	"time",
 	"migrate",
 	"macros",
@@ -50,3 +49,6 @@ features = [
 [package.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--cfg", "nightly"]
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(nightly)'] }

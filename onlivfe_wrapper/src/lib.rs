@@ -21,6 +21,7 @@ extern crate tracing;
 use std::sync::Arc;
 
 use human_panic::Metadata;
+pub use onlivfe;
 use onlivfe::{
 	Authentication,
 	Instance,
@@ -34,6 +35,9 @@ use onlivfe::{
 	Profile,
 	ProfileId,
 };
+// TODO: Make re-exports needless
+pub use onlivfe_cache_store;
+pub use onlivfe_net;
 use strum::IntoEnumIterator;
 
 /// Initializes some static global parts of the core, setting up logging &
@@ -46,6 +50,14 @@ pub fn init(
 	name: impl Into<std::borrow::Cow<'static, str>>,
 	version: impl Into<std::borrow::Cow<'static, str>>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
+	let name = name.into();
+	let version = version.into();
+	human_panic::setup_panic!(
+		Metadata::new(name.clone(), version.clone())
+			.authors("Onlivfe contributors")
+			.homepage("onlivfe.com")
+	);
+
 	#[cfg(target_os = "android")]
 	{
 		android_logger::init_once(
@@ -63,14 +75,6 @@ pub fn init(
 			.try_init()?;
 		trace!("Initialized tracing");
 	}
-
-	let name = name.into();
-	let version = version.into();
-	human_panic::setup_panic!(
-		Metadata::new(name.clone(), version.clone())
-			.authors("Onlivfe contributors")
-			.homepage("onlivfe.com")
-	);
 
 	Ok(())
 }

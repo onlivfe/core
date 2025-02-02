@@ -20,7 +20,7 @@ maintenance = { status = "experimental" }
 [lib]
 name = "onlivfe"
 path = "src/lib.rs"
-crate-type = ["lib", "dylib"]
+
 
 [features]
 default = ["rand_util"]
@@ -30,7 +30,7 @@ rand_util = []
 
 serde = { workspace = true, features = ["derive"]  }
 serde_with = { workspace = true }
-uuid = { workspace = true }
+uuid = { version = "1.11.0", features = ["serde", "v4", "js"] }
 time = { workspace = true, features = ["macros"]  }
 strum = { workspace = true, features = ["derive"]  }
 
