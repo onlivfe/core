@@ -69,8 +69,10 @@ pub fn init(
 	}
 	#[cfg(not(target_os = "android"))]
 	{
-		dotenvy::dotenv().ok();
+		#[cfg(debug_assertions)]
+		dotenvy::dotenv()?;
 		tracing_subscriber::fmt()
+    	.pretty()
 			.with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
 			.try_init()?;
 		trace!("Initialized tracing");
@@ -86,6 +88,15 @@ const USER_AGENT: &str = concat!(
 	env!("CARGO_PKG_REPOSITORY"),
 	")",
 );
+
+/// An error that happened with reauthenticating multiple accounts
+#[derive(Debug, Clone)]
+pub enum ReauthError {
+	/// Retrieving the accounts from storage failed
+	Storage(String),
+	/// Some accounts failed to authenticate
+	FailedToAuthenticate(Vec<(String, PlatformAccountId)>)
+}
 
 #[derive(Debug)]
 /// The core struct that is used by apps/shells/clients to fetch data and invoke
@@ -104,6 +115,8 @@ pub struct Onlivfe<StorageBackend: onlivfe::storage::OnlivfeStore> {
 
 impl<StorageBackend: onlivfe::storage::OnlivfeStore> Onlivfe<StorageBackend> {
 	/// Creates a new onlivfe client
+	/// 
+	/// Remember to call `re_authenticate` after the creation to setup the API client properly!
 	///
 	/// # Errors
 	///
@@ -129,6 +142,43 @@ impl<StorageBackend: onlivfe::storage::OnlivfeStore> Onlivfe<StorageBackend> {
 		}
 
 		Ok(ids)
+	}
+
+	/// Re-authenticates the API based on the storage.
+	/// 
+	/// Returns re-authenticated IDs
+	///
+	/// # Errors
+	///
+	/// If even getting the auths from storage failed, or if some account auths failed
+	pub async fn re_authenticate(
+		&self, include_already_in_api: bool
+	) -> Result<Vec<PlatformAccountId>, ReauthError> {
+		let mut to_authenticate = self.store.authentications().await.map_err(|e| ReauthError::Storage(e.to_string()))?;
+		let mut api_ids: Vec<PlatformAccountId> = vec![];
+		for platform in PlatformType::iter() {
+			api_ids.append(&mut self.api.authenticated_clients(platform).await);
+		}
+
+		if !include_already_in_api {
+			to_authenticate.retain(|v| !api_ids.contains(&v.id()));
+		}
+		let to_authenticate_ids = to_authenticate.iter().map(onlivfe::Authentication::id).collect();
+
+		let mut errors = vec![];
+		// TODO: Parallel
+		for auth in to_authenticate {
+			let id = auth.id();
+			if let Err(e) = self.restore_login(auth).await {
+				errors.push((e, id));
+			}
+		}
+
+		if errors.is_empty() {
+			Ok(to_authenticate_ids)
+		} else {
+			Err(ReauthError::FailedToAuthenticate(errors))
+		}
 	}
 
 	/// Logs in to a platform

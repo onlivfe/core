@@ -17,6 +17,9 @@
 // The warnings are a bit too aggressive
 #![allow(clippy::significant_drop_tightening)]
 
+#![macro_use]
+extern crate tracing;
+
 // Pain, https://github.com/rust-lang/rust/issues/43244
 /// Drains items from the slice if they match the condition,
 /// returns the drained items
@@ -54,6 +57,7 @@ use onlivfe::{
 	storage::OnlivfeStore,
 };
 use tokio::sync::RwLock;
+use tracing::{error, trace, warn};
 
 /// An in-memory only cache storage backend for onlivfe
 ///
@@ -83,34 +87,37 @@ impl OnlivfeCacheStorageBackend {
 				"Failed to get system directory paths for storage".to_owned()
 			})?;
 
-		let authentications = dirs.config_dir().join("auth.bson");
+		std::fs::create_dir_all(dirs.config_dir()).map_err(|e| format!("Could not create config directory: {e}"))?;
+
+		let authentications = dirs.config_dir().join("auth.json");
 		let authentications: Vec<Authentication> = if authentications.exists() {
 			let authentications =
 				std::fs::File::open(authentications).map_err(|e| e.to_string())?;
-			bson::from_reader(authentications).map_err(|e| e.to_string())?
+			serde_json::from_reader(authentications).map_err(|e| e.to_string())?
 		} else {
 			vec![]
 		};
 
-		let profiles = dirs.config_dir().join("profiles.bson");
+		let profiles = dirs.config_dir().join("profiles.json");
 		let profiles: Vec<Profile> = if profiles.exists() {
 			let profiles =
 				std::fs::File::open(profiles).map_err(|e| e.to_string())?;
-			bson::from_reader(profiles).map_err(|e| e.to_string())?
+			serde_json::from_reader(profiles).map_err(|e| e.to_string())?
 		} else {
 			vec![]
 		};
 
-		let profiles_to_accounts = dirs.config_dir().join("mappings.bson");
+		let profiles_to_accounts = dirs.config_dir().join("mappings.json");
 		let profiles_to_accounts: Vec<(PlatformAccountId, ProfileId)> =
 			if profiles_to_accounts.exists() {
 				let profiles_to_accounts = std::fs::File::open(profiles_to_accounts)
 					.map_err(|e| e.to_string())?;
-				bson::from_reader(profiles_to_accounts).map_err(|e| e.to_string())?
+				serde_json::from_reader(profiles_to_accounts).map_err(|e| e.to_string())?
 			} else {
 				vec![]
 			};
 
+		trace!("Loaded storage backed with {} authentications, {} profiles, and {} mappings", authentications.len(), profiles.len(), profiles_to_accounts.len());
 		let store = Self {
 			dirs,
 			accounts: RwLock::default(),
@@ -129,12 +136,13 @@ impl OnlivfeCacheStorageBackend {
 	fn update_mappings(
 		&self, mappings: &Vec<(PlatformAccountId, ProfileId)>,
 	) -> Result<(), std::io::Error> {
-		let write_result = bson::to_vec(mappings).map(|bytes| {
-			std::fs::write(self.dirs.config_dir().join("mappings.bson"), bytes)
+		let write_result = serde_json::to_vec::<Vec<(PlatformAccountId, ProfileId)>>(mappings).map(|bytes| {
+			trace!("Writing {} mapping bytes to disk", bytes.len());
+			std::fs::write(self.dirs.config_dir().join("mappings.json"), bytes)
 		});
 
 		match write_result {
-			Ok(Ok(_)) => Ok(()),
+			Ok(Ok(())) => Ok(()),
 			Ok(Err(e)) => Err(e),
 			Err(e) => Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, e)),
 		}
@@ -390,33 +398,44 @@ impl OnlivfeStore for OnlivfeCacheStorageBackend {
 		let profile_id = profile.sharing_id.clone();
 		let mut profiles = self.profiles.write().await;
 
-		let mut swapped = false;
+		let mut swapped_profile = None;
 
 		if let Some(auth) =
 			profiles.iter_mut().find(|profile| profile.sharing_id == profile_id)
 		{
+			trace!("Swapping profile");
 			std::mem::swap(&mut *auth, &mut profile);
-			swapped = true;
+			swapped_profile = Some(profile);
+		} else {
+			trace!("Adding profile");
+			profiles.push(profile);
 		}
 
-		let write_result = bson::to_vec(&*profiles).map(|bytes| {
-			std::fs::write(self.dirs.config_dir().join("auth.bson"), bytes)
+		trace!("Going to write {} ", profiles.len());
+		let write_result = serde_json::to_vec::<Vec<Profile>>(&*profiles).map(|bytes| {
+			trace!("Writing {} auth bytes to disk", bytes.len());
+			std::fs::write(self.dirs.config_dir().join("profiles.json"), bytes)
 		});
+
+		let swapped = swapped_profile.is_some();
 
 		// Undo the operation before returning, as we want same state on disk and in
 		// cache always
-		let mut before_exit = || {
-			if swapped {
+		let before_exit = || {
+			if let Some(mut swapped_profile) = swapped_profile {
+				trace!("Undoing profile swap");
 				if let Some(prof) =
 					profiles.iter_mut().find(|profile| profile.sharing_id == profile_id)
 				{
-					std::mem::swap(&mut *prof, &mut profile);
+					std::mem::swap(&mut *prof, &mut swapped_profile);
+				} else {
+					error!("This should be impossible, couldn't undo profile swap");
 				}
 			};
 		};
 
 		match write_result {
-			Ok(Ok(_)) => {}
+			Ok(Ok(())) => {}
 			Ok(Err(e)) => {
 				before_exit();
 				return Err(e);
@@ -427,9 +446,7 @@ impl OnlivfeStore for OnlivfeCacheStorageBackend {
 			}
 		};
 
-		if !swapped {
-			profiles.push(profile);
-		}
+		trace!("Fully updated profiles");
 
 		Ok(swapped)
 	}
@@ -466,33 +483,44 @@ impl OnlivfeStore for OnlivfeCacheStorageBackend {
 		let auth_id = authentication.id();
 		let mut authentications = self.authentications.write().await;
 
-		let mut swapped = false;
+		let mut swapped_auth = None;
 
 		if let Some(auth) =
 			authentications.iter_mut().find(|auth| auth.id() == auth_id)
 		{
+			trace!("Swapping authentication");
 			std::mem::swap(&mut *auth, &mut authentication);
-			swapped = true;
+			swapped_auth = Some(authentication);
+		} else {
+			trace!("Adding authentication");
+			authentications.push(authentication);
 		}
 
-		let write_result = bson::to_vec(&*authentications).map(|bytes| {
-			std::fs::write(self.dirs.config_dir().join("auth.bson"), bytes)
+		trace!("Going to write {} authentications", authentications.len());
+		let write_result = serde_json::to_vec::<Vec<Authentication>>(&authentications).map(|bytes| {
+			trace!("Writing {} auth bytes to disk", bytes.len());
+			std::fs::write(self.dirs.config_dir().join("auth.json"), bytes)
 		});
+
+		let swapped = swapped_auth.is_some();
 
 		// Undo the operation before returning, as we want same state on disk and in
 		// cache always
-		let mut before_exit = || {
-			if swapped {
+		let before_exit = || {
+			if let Some(mut swapped_auth) = swapped_auth {
+				trace!("Undoing auth swap");
 				if let Some(auth) =
 					authentications.iter_mut().find(|auth| auth.id() == auth_id)
 				{
-					std::mem::swap(&mut *auth, &mut authentication);
+					std::mem::swap(&mut *auth, &mut swapped_auth);
+				} else {
+					error!("This should be impossible, couldn't undo auth swap");
 				}
 			}
 		};
 
 		match write_result {
-			Ok(Ok(_)) => {}
+			Ok(Ok(())) => {}
 			Ok(Err(e)) => {
 				before_exit();
 				return Err(e);
@@ -503,9 +531,7 @@ impl OnlivfeStore for OnlivfeCacheStorageBackend {
 			}
 		};
 
-		if !swapped {
-			authentications.push(authentication);
-		}
+		trace!("Fully added authentication");
 
 		Ok(swapped)
 	}
@@ -520,20 +546,23 @@ impl OnlivfeStore for OnlivfeCacheStorageBackend {
 			.position(|auth| auth.id() == id)
 			.map(|index| authentications.swap_remove(index));
 
-		let write_result = bson::to_vec(&*authentications).map(|bytes| {
-			std::fs::write(self.dirs.config_dir().join("auth.bson"), bytes)
+		trace!("Going to write {} authentications", authentications.len());
+		let write_result = serde_json::to_vec::<Vec<Authentication>>(&*authentications).map(|bytes| {
+			trace!("Writing {} auth bytes to disk", bytes.len());
+			std::fs::write(self.dirs.config_dir().join("auth.json"), bytes)
 		});
 
 		// Undo the operation before returning, as we want same state on disk and in
 		// cache always
 		let before_exit = || {
 			if let Some(removed_auth) = removed_auth {
+				trace!("Undoing auth removal");
 				authentications.push(removed_auth);
 			}
 		};
 
 		match write_result {
-			Ok(Ok(_)) => {}
+			Ok(Ok(())) => {}
 			Ok(Err(e)) => {
 				before_exit();
 				return Err(e);
@@ -543,6 +572,8 @@ impl OnlivfeStore for OnlivfeCacheStorageBackend {
 				return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, e));
 			}
 		};
+
+		trace!("Fully removed authentication");
 
 		Ok(true)
 	}
